@@ -35,7 +35,7 @@ import org.sakaiproject.user.api.User;
 import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.user.api.UserNotDefinedException;
 
-import uk.ac.cam.caret.sakai.rsf.entitybroker.EntityViewParamsInferrer;
+import org.sakaiproject.rsf.entitybroker.EntityViewParamsInferrer;
 import uk.org.ponder.rsf.viewstate.SimpleViewParameters;
 import uk.org.ponder.rsf.viewstate.ViewParameters;
 
@@ -148,7 +148,7 @@ public class GradebookEntityProvider extends AbstractEntityProvider implements
 					item.setUserId(studentId);
 					item.setUserName(getUserDisplayName(studentId));
 					item.setGrade(gradebookService.getAssignmentScoreString(
-							siteId, assignment.getName(), studentId));
+							siteId, assignment.getId(), studentId));
 
 					course.assignments.add(item);
 				}
@@ -166,7 +166,7 @@ public class GradebookEntityProvider extends AbstractEntityProvider implements
 				item.setUserId(userId);
 				item.setUserName(getUserDisplayName(userId));
 				item.setGrade(gradebookService.getAssignmentScoreString(siteId,
-						assignment.getName(), userId));
+						assignment.getId(), userId));
 
 				course.assignments.add(item);
 			}
@@ -245,7 +245,7 @@ public class GradebookEntityProvider extends AbstractEntityProvider implements
 				item.setUserId(userId);
 				item.setUserName(getUserDisplayName(userId));
 				item.setGrade(gradebookService.getAssignmentScoreString(siteId,
-						assignment.getName(), userId));
+						assignment.getId(), userId));
 
 				course.assignments.add(item);
 			}
@@ -293,14 +293,14 @@ public class GradebookEntityProvider extends AbstractEntityProvider implements
 			if (assignment.getName().equals(assignmentName)) {
 				CommentDefinition cd = gradebookService
 						.getAssignmentScoreComment(siteId,
-								assignment.getName(), userId);
+								assignment.getId(), userId);
 
 				GradeAssignmentItemDetail item = new GradeAssignmentItemDetail(
 						assignment, cd);
 				item.setUserId(userId);
 				item.setUserName(getUserDisplayName(userId));
 				item.setGrade(gradebookService.getAssignmentScoreString(siteId,
-						assignment.getName(), userId));
+						assignment.getId(), userId));
 
 				return item;
 			}

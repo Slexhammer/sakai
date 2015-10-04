@@ -153,6 +153,8 @@ public class ContentEntityProvider extends AbstractEntityProvider implements Ent
 	private List<ContentItem> getSiteListItems(String siteId) {
 		List<ContentItem> rv = new ArrayList<ContentItem>();
 		String wsCollectionId = contentHostingService.getSiteCollection(siteId);
+		boolean allowUpdateSite = siteService.allowUpdateSite(siteId);
+      
 		try
         {
 			// mark the site collection as expanded
@@ -179,6 +181,10 @@ public class ContentEntityProvider extends AbstractEntityProvider implements Ent
 						ContentItem item = new ContentItem();
 						item.setType("collection");
 						item.setSize(contentHostingService.getCollectionSize(id));
+						if (allowUpdateSite) // to be consistent with UI
+							item.setQuota(Long.toString(contentHostingService.getQuota(collection)));
+						item.setUsage(Long.toString(collection.getBodySizeK() * 1024));
+						
 						List<String> collectionMembers = collection.getMembers();
 						if (collectionMembers != null)
 						{
@@ -302,7 +308,9 @@ public class ContentEntityProvider extends AbstractEntityProvider implements Ent
 		item.setTitle(props.getProperty(ResourceProperties.PROP_DISPLAY_NAME));
 		item.setDescription(props.getProperty(ResourceProperties.PROP_DESCRIPTION));
 		item.setUrl(entity.getUrl());
-		item.setAuthor(getDisplayName(props.getProperty(ResourceProperties.PROP_CREATOR)));
+		String authorId = props.getProperty(ResourceProperties.PROP_CREATOR);
+		item.setAuthorId(authorId);
+		item.setAuthor(getDisplayName(authorId));
 		item.setModifiedDate(props.getProperty(ResourceProperties.PROP_MODIFIED_DATE));
 		item.setContainer(entity.getContainingCollection().getReference());
 		item.setVisible( !entity.isHidden() && entity.isAvailable() );
@@ -493,6 +501,9 @@ public class ContentEntityProvider extends AbstractEntityProvider implements Ent
 		private String author;
 
 		@Getter @Setter
+		private String authorId;
+		
+		@Getter @Setter
 		private String modifiedDate;
 
 		@Getter @Setter
@@ -515,6 +526,12 @@ public class ContentEntityProvider extends AbstractEntityProvider implements Ent
   
 		@Getter @Setter
 		private String copyrightAlert;
+      
+		@Getter @Setter
+		private String quota;
+		
+		@Getter @Setter
+		private String usage;
 	}
 	
 	/**

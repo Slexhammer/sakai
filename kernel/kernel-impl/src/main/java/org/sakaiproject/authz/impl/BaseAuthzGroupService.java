@@ -645,7 +645,9 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
                         permissions.add(rf.function);
                         roles.add(rf.role);
                     }
-                    M_log.info("Changed permissions for roles (" + roles + ") in " + azGroup.getId() + ": " + permissions);
+                    if (M_log.isDebugEnabled()) {
+                        M_log.debug("Changed permissions for roles (" + roles + ") in " + azGroup.getId() + ": " + permissions);
+                    }
                 }
                 ((SakaiSecurity) securityService()).notifyRealmChanged(azGroup.getId(), roles, permissions);
             } catch (Exception e) {
@@ -1361,7 +1363,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		 * @param authzGroupId The ID of the AuthzGroup
 		 * @return The Set (String) of provider IDs
 		 */
-		public Set getProviderIds(String authzGroupId);
+		public Set<String> getProviderIds(String authzGroupId);
 
 		/**
 		 * Get the AuthzGroup IDs associated with a provider ID.

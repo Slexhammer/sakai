@@ -73,6 +73,9 @@ import org.sakaiproject.user.api.UserNotDefinedException;
 import org.sakaiproject.user.cover.UserDirectoryService;
 import org.sakaiproject.util.ResourceLoader;
 import org.sakaiproject.event.cover.EventTrackingService;
+import org.sakaiproject.tool.assessment.facade.AssessmentFacade;
+import org.sakaiproject.tool.assessment.services.assessment.AssessmentService;
+import org.sakaiproject.tool.assessment.ui.bean.authz.AuthorizationBean;
 
 
 /**
@@ -87,6 +90,7 @@ public class QuestionPoolBean implements Serializable
 	  private final static long serialVersionUID = 418920360211039758L;
   public final static String ORIGIN_TOP = "poolList";
   public final static String EDIT_POOL = "editPool";
+  public final static String EDIT_ASSESSMENT = "editAssessment";
   
   private String name;
   private Collection pools;
@@ -184,6 +188,10 @@ public class QuestionPoolBean implements Serializable
   public QuestionPoolBean()
   {
     resetFields();
+  }
+
+  public int getRowIndex() {
+      return qpDataModel.getRowIndex();
   }
 
   public QuestionPoolDataModel getQpools()
@@ -1312,6 +1320,20 @@ public String getAddOrEdit()
 		    context.addMessage(null, new FacesMessage(err));
 		    return "editAssessment";
 		}
+		
+		// permission check to ensure the user should have access to the questions being copied
+		AuthorizationBean authzBean = (AuthorizationBean) ContextUtil.lookupBean("authorization");
+		AssessmentService assessmentService = new AssessmentService();
+		AssessmentFacade af = assessmentService.getBasicInfoOfAnAssessmentFromSectionId(new Long(sectionId));
+		String assessmentId = af.getAssessmentBaseId().toString();
+		String createdBy = af.getCreatedBy();
+		if (!authzBean.isUserAllowedToEditAssessment(assessmentId, createdBy, false))
+		{
+			FacesContext context = FacesContext.getCurrentInstance();
+			String err = ContextUtil.getLocalizedString("org.sakaiproject.tool.assessment.bundle.AuthorMessages", "denied_edit_assessment_error");
+			context.addMessage(null, new FacesMessage(err));
+			return "editAssessment";
+		}
 
 		if (iter.hasNext()) {
 			// first pool, if there is one
@@ -1329,7 +1351,7 @@ public String getAddOrEdit()
         err=rb.getString("no_pools_error");
         context.addMessage(null, new FacesMessage(err));
 
-		return "editAssessment";
+		return EDIT_ASSESSMENT;
 	}
      
   public boolean hasItemInDestPool(String sourceItemId, String destId){
@@ -1433,8 +1455,8 @@ public String getAddOrEdit()
 				}
 			}
 		}
-		
-		return "editAssessment";
+		setSourcePart(null);
+		return EDIT_ASSESSMENT;
 	}
 
  public String removeQuestionsFromPool(){
@@ -1872,7 +1894,11 @@ String poolId = ContextUtil.lookupParam("qpid");
   }
 
   public String cancelPool() {
-	  if(ORIGIN_TOP.equals(getOutcome()) || getOutcomePool() == 0){		  
+	  if (getSourcePart() != null) {	
+		  setSourcePart(null);
+		  setOutcome(EDIT_ASSESSMENT);
+	  }
+	  else if (ORIGIN_TOP.equals(getOutcome()) || getOutcomePool() == 0){		  
 		setCurrentPool(null);
 		setOutcome(ORIGIN_TOP);
 		buildTree();
@@ -2083,7 +2109,7 @@ String poolId = ContextUtil.lookupParam("qpid");
     ItemAuthorBean itemauthorbean= (ItemAuthorBean) ContextUtil.lookupBean("itemauthor");
     this.setImportToAuthoring(false);
     itemauthorbean.setItemTypeString("");
-    return "editAssessment";
+    return EDIT_ASSESSMENT;
 
   }
 
