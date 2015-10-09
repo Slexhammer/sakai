@@ -135,6 +135,17 @@ public class SakaiBLTIUtil {
 	public static final String LTI1_PATH = "/imsblis/service/";
 	public static final String LTI2_PATH = "/imsblis/lti2/";
 
+	public static final String SAKAI_CONTENTITEM_SELECTANY = "Sakai.contentitem.selectAny";
+	public static final String SAKAI_CONTENTITEM_SELECTFILE = "Sakai.contentitem.selectFile";
+	public static final String SAKAI_CONTENTITEM_SELECTIMPORT = "Sakai.contentitem.selectImport";
+	public static final String SAKAI_CONTENTITEM_SELECTLINK = "Sakai.contentitem.selectLink";
+
+	public static final String CANVAS_PLACEMENTS_COURSENAVIGATION = "Canvas.placements.courseNavigation";
+	public static final String CANVAS_PLACEMENTS_ACCOUNTNAVIGATION = "Canvas.placements.accountNavigation";
+	public static final String CANVAS_PLACEMENTS_ASSIGNMENTSELECTION = "Canvas.placements.assignmentSelection";
+	public static final String CANVAS_PLACEMENTS_LINKSELECTION = "Canvas.placements.linkSelection";
+	public static final String CANVAS_PLACEMENTS_CONTENTIMPORT = "Canvas.placements.contentImport";
+
 	public static void dPrint(String str)
 	{
 		if ( verbosePrint ) System.out.println(str);
@@ -853,13 +864,15 @@ public class SakaiBLTIUtil {
 
 		// Check which kind of signing we are supposed to do
 		String tool_proxy_binding = (String) tool.get("tool_proxy_binding");
-		ToolProxyBinding toolProxyBinding = new ToolProxyBinding(tool_proxy_binding);
+		if ( tool_proxy_binding != null && tool_proxy_binding.trim().length() > 0 ) {
+			ToolProxyBinding toolProxyBinding = new ToolProxyBinding(tool_proxy_binding);
 		
-		if ( toolProxyBinding.enabledCapability( LTI2Messages.BASIC_LTI_LAUNCH_REQUEST, 
-			LTI2Caps.OAUTH_HMAC256) ) {
+			if ( toolProxyBinding.enabledCapability( LTI2Messages.BASIC_LTI_LAUNCH_REQUEST, 
+				LTI2Caps.OAUTH_HMAC256) ) {
 
-			ltiProps.put(OAuth.OAUTH_SIGNATURE_METHOD,"HMAC-SHA256");
-			M_log.debug("Launching with SHA256 Signing");
+				ltiProps.put(OAuth.OAUTH_SIGNATURE_METHOD,"HMAC-SHA256");
+				M_log.debug("Launching with SHA256 Signing");
+			}
 		}
 
 		return postLaunchHTML(toolProps, ltiProps, rb);
@@ -1095,9 +1108,9 @@ public class SakaiBLTIUtil {
 		setProperty(ltiProps, BasicLTIUtil.BASICLTI_SUBMIT, getRB(rb, "launch.button", "Press to Launch External Tool"));
 		setProperty(ltiProps, BasicLTIConstants.LTI_MESSAGE_TYPE, LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST);
 
-		setProperty(ltiProps, ContentItem.ACCEPT_MEDIA_TYPES, ContentItem.MEDIA_LTILINK);
+		setProperty(ltiProps, ContentItem.ACCEPT_MEDIA_TYPES, ContentItem.MEDIA_LTILINKITEM);
 		setProperty(ltiProps, BasicLTIConstants.ACCEPT_PRESENTATION_DOCUMENT_TARGETS, "iframe,window"); // Nice to add overlay
-		setProperty(ltiProps, BasicLTIConstants.ACCEPT_UNSIGNED, "false");
+		setProperty(ltiProps, BasicLTIConstants.ACCEPT_UNSIGNED, "true");
 		setProperty(ltiProps, BasicLTIConstants.ACCEPT_MULTIPLE, "false");
 		setProperty(ltiProps, BasicLTIConstants.ACCEPT_COPY_ADVICE, "false"); // ???
 		setProperty(ltiProps, BasicLTIConstants.AUTO_CREATE, "true");
@@ -1163,6 +1176,9 @@ public class SakaiBLTIUtil {
 
 		int debug = getInt(tool.get(LTIService.LTI_DEBUG));
 		debug = 1;
+
+		String customstr = toNull((String) tool.get(LTIService.LTI_CUSTOM) );
+		parseCustom(ltiProps, customstr);
 
 		Map<String,String> extra = new HashMap<String,String> ();
 		ltiProps = BasicLTIUtil.signProperties(ltiProps, launch_url, "POST", 

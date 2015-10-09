@@ -1030,7 +1030,7 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 			// Turn on all the UI allow bits so as to allow overriding
 			newTool.put(LTIService.LTI_ALLOWTITLE, new Integer(1));
 			newTool.put(LTIService.LTI_ALLOWPAGETITLE, new Integer(1));
-			// Might only want to do this if we know they do LtiLink Content Item
+			// Might only want to do this if we know they do LtiLinkItem Content Item
 			newTool.put(LTIService.LTI_ALLOWLAUNCH, new Integer(1));
 
 			String tool_proxy_binding = (String) profileTool.get(LTI2Constants.TOOL_PROXY_BINDING);
@@ -1042,14 +1042,58 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 				return "lti_error";
 			}
 
-			if ( toolProxyBinding.enabledCapability(LTI2Messages.BASIC_LTI_LAUNCH_REQUEST,
-				ContentItem.getCapability(ContentItem.TYPE_LTILINK) ) ) {
+			JSONObject launchMessage = toolProxyBinding.getMessageOfType(LTI2Messages.BASIC_LTI_LAUNCH_REQUEST);
+			JSONObject selectMessage = toolProxyBinding.getMessageOfType(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST);
+
+                        if ( launchMessage != null ) {
+                                newTool.put(LTIService.LTI_PL_LAUNCH, new Integer(1));
+                        }
+
+			// Look for capabilities for Sakai
+			boolean sakaiplacements = false;
+                        if ( toolProxyBinding.enabledCapability(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST,
+                                SakaiBLTIUtil.SAKAI_CONTENTITEM_SELECTANY ) ) {
+                                newTool.put(LTIService.LTI_PL_LINKSELECTION, new Integer(1));
+				newTool.put(LTIService.LTI_PL_FILEITEM, new Integer(1));
+				newTool.put(LTIService.LTI_PL_IMPORTITEM, new Integer(1));
+                                sakaiplacements = true;
+                        }
+
+                        if ( toolProxyBinding.enabledCapability(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST,
+                                SakaiBLTIUtil.SAKAI_CONTENTITEM_SELECTFILE ) ) {
+				newTool.put(LTIService.LTI_PL_FILEITEM, new Integer(1));
+                                sakaiplacements = true;
+                        }
+
+                        if ( toolProxyBinding.enabledCapability(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST,
+                                SakaiBLTIUtil.SAKAI_CONTENTITEM_SELECTLINK ) ) {
+                                newTool.put(LTIService.LTI_PL_LINKSELECTION, new Integer(1));
+                                sakaiplacements = true;
+                        }
+
+                        if ( toolProxyBinding.enabledCapability(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST,
+                                SakaiBLTIUtil.SAKAI_CONTENTITEM_SELECTIMPORT ) ) {
+                                newTool.put(LTIService.LTI_PL_IMPORTITEM, new Integer(1));
+                                sakaiplacements = true;
+                        }
+
+			// If we did not see any Sakai commentary about placements, look to the Canvas variants
+			boolean selection = sakaiplacements;
+			if ( ! sakaiplacements && toolProxyBinding.enabledCapability(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST,
+				SakaiBLTIUtil.CANVAS_PLACEMENTS_LINKSELECTION ) ) {
 				newTool.put(LTIService.LTI_PL_LINKSELECTION, new Integer(1));
+				selection = true;
 			}
 
-			if ( toolProxyBinding.enabledCapability(LTI2Messages.BASIC_LTI_LAUNCH_REQUEST,
-				ContentItem.getCapability(ContentItem.TYPE_FILEITEM) ) ) {
+			if ( ! sakaiplacements && toolProxyBinding.enabledCapability(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST,
+				SakaiBLTIUtil.CANVAS_PLACEMENTS_CONTENTIMPORT ) ) {
 				newTool.put(LTIService.LTI_PL_FILEITEM, new Integer(1));
+				selection = true;
+			}
+
+			// When in doubt, assume LINKSELECTION
+			if ( !selection && toolProxyBinding.getMessageOfType(LTI2Messages.CONTENT_ITEM_SELECTION_REQUEST) != null ) {
+				newTool.put(LTIService.LTI_PL_LINKSELECTION, new Integer(1));
 			}
 			
 			newTool.put(LTIService.LTI_TOOL_PROXY_BINDING, tool_proxy_binding);
@@ -1479,7 +1523,7 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 
 		// Check for a returned error message from LTI
 		String lti_errormsg = data.getParameters().getString("lti_errormsg");
-		if ( lti_errormsg != null ) {
+		if ( lti_errormsg != null && lti_errormsg.trim().length() > 0 ) {
 			addAlert(state,lti_errormsg);
 			switchPanel(state, "Error");
 			return;
@@ -1528,7 +1572,7 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 		// dataProps={remember=always bring a towel}
 
 		// Extract the content item data
-		JSONObject item = contentItem.getItemOfType(ContentItem.TYPE_LTILINK);
+		JSONObject item = contentItem.getItemOfType(ContentItem.TYPE_LTILINKITEM);
 		if ( item == null ) {
 			addAlert(state,rb.getString("error.contentitem.no.ltilink"));
 			switchPanel(state, "Error");
@@ -1537,11 +1581,12 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 
 		// Parse the returned information to insert a Content Item
 		/* {
-			"@type": "LtiLink",
+			"@type": "LtiLinkItem",
 			"@id": ":item2",
 			"text": "The mascot for the Sakai Project",
 			"title": "The fearsome mascot of the Sakai Project",
 			"url": "http:\/\/localhost:8888\/sakai-api-test\/tool.php?sakai=98765",
+			"mediaType" : "application/vnd.ims.lti.v1.ltilink", 
 			"icon": {
 				"@id": "fa-bullseye",
 				"width": 50,
@@ -1554,8 +1599,13 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 
 		// Much prefer this be an icon style like LTI 2.0
 		JSONObject iconObject = getObject(item, "icon");
-		String icon = getString(iconObject, LTI2Constants.JSONLD_ID);
-		if ( ! icon.startsWith("fa-") ) icon = null;
+		String icon = getString(iconObject, "fa_icon");
+		if ( icon == null ) {
+			icon = getString(iconObject, LTI2Constants.JSONLD_ID);
+			if ( icon != null ) {
+				if ( ! icon.startsWith("fa-") ) icon = null;
+			}
+		}
 
 		// Prepare data for the next phase
 		state.removeAttribute(STATE_POST);
@@ -1664,6 +1714,7 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 		// Since the external tool will be setting all the POST data we need to 
 		// include GET data for things that we might normally have sent as "hidden" data
 		Placement placement = toolManager.getCurrentPlacement();
+                // String contentReturn = SakaiBLTIUtil.getOurServerUrl() + "/portal/tool/" + placement.getId() + 
                 String contentReturn = serverConfigurationService.getToolUrl() + "/" + placement.getId() + 
 			"/sakai.basiclti.admin.helper.helper" +
 			"?eventSubmit_doContentItemPut=Save" +
@@ -1681,7 +1732,7 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 		// which will come back later.  Be mindful of GET length limitations enroute
 		// to the access servlet.
 		Properties contentData = new Properties();
-		contentData.setProperty(ContentItem.ACCEPT_MEDIA_TYPES, ContentItem.MEDIA_LTILINK);
+		contentData.setProperty(ContentItem.ACCEPT_MEDIA_TYPES, ContentItem.MEDIA_LTILINKITEM);
 		contentData.setProperty("remember", "always bring a towel");  // An example
 
 		contentLaunch = ContentItem.buildLaunch(contentLaunch , contentReturn, contentData);
@@ -1709,12 +1760,15 @@ public class LTIAdminTool extends VelocityPortletPaneledAction
 
 		// Check if we are supposed to let the tool configure itself
 		Long allowLinkSelection = foorm.getLong(tool.get(LTIService.LTI_PL_LINKSELECTION));
+		Long allowLaunch = foorm.getLong(tool.get(LTIService.LTI_PL_LAUNCH));
 
 		context.put("isAdmin",new Boolean(ltiService.isAdmin()) );
 		context.put("doAction", BUTTON + "doContentPut");
 		if ( ! returnUrl.startsWith("about:blank") ) context.put("cancelUrl", returnUrl);
 		context.put("returnUrl", returnUrl);
 		if ( allowLinkSelection > 0 ) context.put("contentLaunch", contentLaunch);
+		// If this tool only allows configuration, go straight to Content Item
+		if ( allowLinkSelection > 0 && allowLaunch < 1 ) context.put("autoLaunch", contentLaunch);
 		context.put(LTIService.LTI_TOOL_ID,toolKey);
 		context.put("tool_description", tool.get(LTIService.LTI_DESCRIPTION));
 		context.put("tool_title", tool.get(LTIService.LTI_TITLE));
