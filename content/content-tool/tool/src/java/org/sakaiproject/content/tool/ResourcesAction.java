@@ -26,15 +26,12 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.text.Format;
 import java.text.NumberFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -148,6 +145,7 @@ import org.sakaiproject.api.app.scheduler.JobBeanWrapper;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.JobDetail;
+import org.quartz.JobKey;
 import org.quartz.Trigger;
 
 /**
@@ -414,6 +412,8 @@ public class ResourcesAction
     public static final ResourceLoader trb = new ResourceLoader("types");
     /** Resource bundle using current language locale */
     private static ResourceLoader rrb = new ResourceLoader("right");
+    /** Resource bundle using current language locale */
+    private static ResourceLoader metaLang = new ResourceLoader("metadata");
 	
 	/** Shared messages */
 	private static final String DEFAULT_RESOURCECLASS = "org.sakaiproject.sharedI18n.SharedProperties";
@@ -584,6 +584,10 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 	/** The default value for whether to show all sites in resources tool (used if global value can't be read from server config service) */
 	private static final boolean SHOW_ALL_SITES_IN_RESOURCES = false;
 	/** The collection id being browsed. */
+	public static final String SAK_PROP_SHOW_ALL_SITES_IN_TOOL = PREFIX + "show_all_collections.tool";
+	public static final String SAK_PROP_SHOW_ALL_SITES_IN_DROPBOX = PREFIX + "show_all_collections.dropbox";
+	public static final String SAK_PROP_SHOW_ALL_SITES_IN_HELPER = PREFIX + "show_all_collections.helper";
+
 	private static final String STATE_COLLECTION_ID = PREFIX + REQUEST + "collection_id";
 	
 	
@@ -1263,6 +1267,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 				try
 				{
 					ContentHostingService.commitResource(resource, notification);
+					conditionsHelper.notifyCondition(resource);
 					item_added = true;
 					new_resources.add(resource);
 				}
@@ -1770,7 +1775,6 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
     protected static List<ResourceToolAction> getActions(ContentEntity selectedItem, Set<ContentPermissions> permissions, ResourceTypeRegistry registry)
     {
 		logger.debug("ResourcesAction.getActions()");
-	    Reference ref = EntityManager.newReference(selectedItem.getReference());
 	    List<ResourceToolAction> actions = new ArrayList<ResourceToolAction>();
 	    
 	    ResourceType typeDef = getResourceType(selectedItem, registry);
@@ -1842,7 +1846,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 	    while(actionIt.hasNext())
 	    {
 	    	ResourceToolAction action = actionIt.next();
-	    	if(! action.available((ContentEntity)ref.getEntity()))
+	    	if(! action.available(selectedItem) )
 	    	{
 	    		actionIt.remove();
 	    	}
@@ -1972,8 +1976,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 	    while(actionIt.hasNext())
 	    {
 	    	ResourceToolAction action = actionIt.next();
-	    	ContentEntity entity = (ContentEntity) ref.getEntity();
-			if(! action.available(entity))
+			if(! action.available(selectedItem))
 	    	{
 	    		actionIt.remove();
 	    	}
@@ -3670,45 +3673,6 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 	}
 
 	/**
-	 * @param pedit
-	 * @param metadataGroups
-	 * @param metadata
-	 */
-	private static void saveMetadata(ResourcePropertiesEdit pedit, List metadataGroups, ResourcesEditItem item)
-	{
-		logger.debug("ResourcesAction.saveMetadata()");
-		if(metadataGroups != null && !metadataGroups.isEmpty())
-		{
-			MetadataGroup group = null;
-			Iterator it = metadataGroups.iterator();
-			while(it.hasNext())
-			{
-				group = (MetadataGroup) it.next();
-				Iterator props = group.iterator();
-				while(props.hasNext())
-				{
-					ResourcesMetadata prop = (ResourcesMetadata) props.next();
-
-					if(ResourcesMetadata.WIDGET_DATETIME.equals(prop.getWidget()) || ResourcesMetadata.WIDGET_DATE.equals(prop.getWidget()) || ResourcesMetadata.WIDGET_TIME.equals(prop.getWidget()))
-					{
-						Time val = (Time)item.getMetadata().get(prop.getFullname());
-						if(val != null)
-						{
-							pedit.addProperty(prop.getFullname(), val.toString());
-						}
-					}
-					else
-					{
-						String val = (String) item.getMetadata().get(prop.getFullname());
-						pedit.addProperty(prop.getFullname(), val);
-					}
-				}
-			}
-		}
-
-	}
-   
-	/**
 	 * @param url
 	 * @return
 	 * @throws MalformedURLException
@@ -3940,7 +3904,9 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 	{
 		logger.debug(this + ".buildCreateWizardContext()");
 		context.put("tlang",trb);
-		
+		context.put("metaLang", metaLang);
+		context.put("site_id", ToolManager.getCurrentPlacement().getContext());
+
 		context.put("DETAILS_FORM_NAME", "detailsForm");
 
 		String template = "content/sakai_resources_cwiz_finish";
@@ -3962,7 +3928,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 			String msg = pipe.getErrorMessage();
 			if(msg == null || msg.trim().equals(""))
 			{
-				msg = rb.getString("alert.unknown");
+				msg = trb.getString("alert.unknown");
 			}
 			addAlert(state, msg);
 			state.setAttribute(STATE_MODE, MODE_LIST);
@@ -4003,8 +3969,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 
 			parent.setPubviewPossible(! preventPublicDisplay);
 			ListItem item = new ListItem(pipe, parent, defaultRetractDate);
-			//item.setPubviewPossible(! preventPublicDisplay);
-			item.metadataGroupsIntoContext(context);
+			item.initMetadataGroups();
 			
 			// copied from ResourcesHelperAction since the context created in that class is not available to a template used here.
 			if(parent.isDropbox)
@@ -4216,6 +4181,8 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 		boolean isSpecialSite = false;
 		if ("!admin".equals(currentSiteId) || "~admin".equals(currentSiteId)) {
 			isSpecialSite = true;
+			// SAK-30085
+			context.put("showJumpToResourceForm", true);
 		}
 		
 		
@@ -4853,7 +4820,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 				String msg = pipe.getErrorMessage();
 				if(msg == null || msg.trim().equals(""))
 				{
-					msg = rb.getString("alert.unknown");
+					msg = trb.getString("alert.unknown");
 				}
 				addAlert(state, msg);
 				state.setAttribute(STATE_MODE, MODE_LIST);
@@ -5499,13 +5466,15 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 	{
 		logger.debug(this + ".buildReviseMetadataContext()");
 		context.put("tlang", trb);
-		
+		context.put("metaLang", metaLang);
+
 		context.put("DETAILS_FORM_NAME", "detailsForm");
 		
 		ResourceToolAction action = (ResourceToolAction) state.getAttribute(STATE_REVISE_PROPERTIES_ACTION);
 		context.put("action", action);
 		
 		context.put("showItemSummary", Boolean.TRUE.toString());
+		context.put("site_id", ToolManager.getCurrentPlacement().getContext());
 		
 		String typeId = action.getTypeId();
 		
@@ -5530,7 +5499,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 			item = getListItem(state);
 			state.setAttribute(STATE_REVISE_PROPERTIES_ITEM, item);
 		}
-		item.metadataGroupsIntoContext(context);
+		item.initMetadataGroups();
 		
 		if(item.isDropbox)
 		{
@@ -5539,6 +5508,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 			context.put("dropboxNotificationAllowed", Boolean.valueOf(ResourcesAction.DROPBOX_NOTIFICATIONS_ALLOW.equals(dropboxNotificationsProperty)));
 		}
 		
+		item.initMetadataGroups();
 		context.put("item", item);
 
 		final boolean showFilter = ServerConfigurationService.getBoolean("resources.filter.show", Boolean.FALSE);
@@ -6224,6 +6194,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 		
 		if("save".equals(user_action))
 		{
+
 			item.captureProperties(params, ListItem.DOT + "0");
 			if (item.numberFieldIsInvalid) {
 				addAlert(state, rb.getString("conditions.invalid.condition.argument"));
@@ -6231,6 +6202,10 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 			}
 			if (item.numberFieldIsOutOfRange) {
 				addAlert(state, rb.getFormattedMessage("conditions.condition.argument.outofrange", new String[] { item.getConditionAssignmentPoints() }));
+				return;
+			}
+			if(!"".equals(item.metadataValidationFails)) {
+				addAlert(state, metaLang.getFormattedMessage("metadata.validation.error", item.metadataValidationFails));
 				return;
 			}
 			String name = params.getString("name" + ListItem.DOT + "0");
@@ -6384,6 +6359,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 					try
 					{
 						ContentHostingService.commitResource(resource, noti);
+						conditionsHelper.notifyCondition(resource);
 						if(action instanceof InteractionAction)
 						{
 						    InteractionAction iAction = (InteractionAction) action;
@@ -7105,34 +7081,6 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 
 	}	// doDelete
 
-//    /**
-//	 * @param data
-//	 */
-//	public void doHide_metadata(RunData data)
-//	{
-//		ParameterParser params = data.getParameters ();
-//		String name = params.getString("metadataGroup");
-//
-//		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
-//		List metadataGroups = (List) state.getAttribute(ListItem.STATE_METADATA_GROUPS);
-//		if(metadataGroups != null && ! metadataGroups.isEmpty())
-//		{
-//			boolean found = false;
-//			MetadataGroup group = null;
-//			Iterator it = metadataGroups.iterator();
-//			while(!found && it.hasNext())
-//			{
-//				group = (MetadataGroup) it.next();
-//				found = (name.equals(Validator.escapeUrl(group.getName())) || name.equals(group.getName()));
-//			}
-//			if(found)
-//			{
-//				group.setShowing(false);
-//			}
-//		}
-//
-//	}	// doHide_metadata
-//
 	/**
 	 * @param data
 	 */
@@ -7604,6 +7552,10 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 				addAlert(state, rb.getFormattedMessage("conditions.condition.argument.outofrange", new String[] { item.getConditionAssignmentPoints() }));
 				return;
 			}
+			if(!"".equals(item.metadataValidationFails)) {
+				addAlert(state, metaLang.getFormattedMessage("metadata.validation.error", item.metadataValidationFails));
+				return;
+			}
 			//Control if groups are selected
 			if (!checkGroups(params)) { 
 				addAlert(state, trb.getString("alert.youchoosegroup")); 
@@ -7875,37 +7827,6 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 		}	// if-else
 
 	}	// doSaveOrder
-
-//	/**
-//	 * @param data
-//	 */
-//	public void doShow_metadata(RunData data)
-//	{
-//		ParameterParser params = data.getParameters ();
-//		String name = params.getString("metadataGroup");
-//
-//		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
-//		
-//		
-//		
-//		List metadataGroups = (List) state.getAttribute(ListItem.STATE_METADATA_GROUPS);
-//		if(metadataGroups != null && ! metadataGroups.isEmpty())
-//		{
-//			boolean found = false;
-//			MetadataGroup group = null;
-//			Iterator it = metadataGroups.iterator();
-//			while(!found && it.hasNext())
-//			{
-//				group = (MetadataGroup) it.next();
-//				found = (name.equals(Validator.escapeUrl(group.getName())) || name.equals(group.getName()));
-//			}
-//			if(found)
-//			{
-//				group.setShowing(true);
-//			}
-//		}
-//
-//	}	// doShow_metadata
 
 	/**
 	* Show information about WebDAV
@@ -8247,7 +8168,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 			String msg = pipe.getErrorMessage();
 			if(msg == null || msg.trim().equals(""))
 			{
-				msg = rb.getString("alert.unknown");
+				msg = trb.getString("alert.unknown");
 			}
 			addAlert(state, msg);
 		}
@@ -8574,15 +8495,15 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 		boolean show_other_sites = false;
 		if(RESOURCES_MODE_HELPER.equals(resources_mode))
 		{
-			show_other_sites = ServerConfigurationService.getBoolean("resources.show_all_collections.helper", SHOW_ALL_SITES_IN_FILE_PICKER);
+			show_other_sites = ServerConfigurationService.getBoolean(SAK_PROP_SHOW_ALL_SITES_IN_HELPER, SHOW_ALL_SITES_IN_FILE_PICKER);
 		}
 		else if(RESOURCES_MODE_DROPBOX.equals(resources_mode))
 		{
-			show_other_sites = ServerConfigurationService.getBoolean("resources.show_all_collections.dropbox", SHOW_ALL_SITES_IN_DROPBOX);
+			show_other_sites = ServerConfigurationService.getBoolean(SAK_PROP_SHOW_ALL_SITES_IN_DROPBOX, SHOW_ALL_SITES_IN_DROPBOX);
 		}
 		else
 		{
-			show_other_sites = ServerConfigurationService.getBoolean("resources.show_all_collections.tool", SHOW_ALL_SITES_IN_RESOURCES);
+			show_other_sites = ServerConfigurationService.getBoolean(SAK_PROP_SHOW_ALL_SITES_IN_TOOL, SHOW_ALL_SITES_IN_RESOURCES);
 		}
 		
 		/** set attribute for the maximum size at which the resources tool will expand a collection. */
@@ -8744,17 +8665,16 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 		try
 		{
 			// get the job scheduler setting and check for whether the content cleanup job has been enabled
-			String[] jobNames = scheduler.getJobNames(Scheduler.DEFAULT_GROUP);
-			for (int i = 0; i < jobNames.length; i++)
-			{
-				JobDetail jobDetail = scheduler.getJobDetail(jobNames[i], Scheduler.DEFAULT_GROUP);
+			Set<JobKey> jobKeys = scheduler.getJobKeys(null);
+			for (JobKey key : jobKeys) {
+				JobDetail jobDetail = scheduler.getJobDetail(key);
 				String beanName = jobDetail.getJobDataMap().getString(JobBeanWrapper.SPRING_BEAN_NAME);
 				if (jobBeanName != null && jobBeanName.equals(beanName))
 				{
 					// found the right quartz job
-					Trigger[] triggerArr = scheduler.getTriggersOfJob(jobDetail.getName(), Scheduler.DEFAULT_GROUP);
+					List<? extends Trigger> triggers = scheduler.getTriggersOfJob(key);
 					// check whether there is any existence of trigger for this job
-					if (triggerArr.length > 0)
+					if (!triggers.isEmpty())
 					{
 						return true;
 					}
@@ -9311,41 +9231,8 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 				continue;
 			}
 			String basename = name.trim();
-            // SAK-11816 - allow much longer URLs by correcting a long basename, make sure no URL resource id exceeds 36 chars
             String extension = ".URL";
-            /* removed this old method which produced really long ids (mostly because of a really long extension)
-            String extension = "";
-			if(name.contains("."))
-			{
-				String[] parts = name.split("\\.");
-				basename = parts[0];
-				if(parts.length > 1)
-				{
-					extension = parts[parts.length - 1];
-				}
-				
-				for(int i = 1; i < parts.length - 1; i++)
-				{
-					basename += "." + parts[i];
-					// extension = parts[i + 1];
-				}
-			}
-			*/
-            if (basename != null && basename.length() > 32) {
-			    // lose the http first
-                if (basename.startsWith("http:")) {
-                    basename = basename.substring(7);
-                }
-                if (basename.length() > 32) {
-                    // max of 18 chars from the URL itself
-                    basename = basename.substring(0, 18);
-                    // add a timestamp to differentiate it (+14 chars)
-                    Format f= new SimpleDateFormat("yyyyMMddHHmmss");
-                    basename += f.format(new Date());
-                    // total new length of 32 chars
-                }
-            }
-            // SAK-11816 - END
+            
             try
 			{
 				ContentResourceEdit resource = ContentHostingService.addResource(collectionId,Validator.escapeResourceName(basename),Validator.escapeResourceName(extension),MAXIMUM_ATTEMPTS_FOR_UNIQUENESS);
@@ -9409,6 +9296,7 @@ protected static final String PARAM_PAGESIZE = "collections_per_page";
 				try
 				{
 					ContentHostingService.commitResource(resource, notification);
+					conditionsHelper.notifyCondition(resource);
 					item_added = true;
 					new_resources.add(resource);
 				}

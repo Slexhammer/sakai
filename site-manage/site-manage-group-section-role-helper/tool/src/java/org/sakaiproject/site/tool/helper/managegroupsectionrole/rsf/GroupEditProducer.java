@@ -238,7 +238,7 @@ public class GroupEditProducer implements ViewComponentProducer, ActionResultInt
 			 // not include in the group yet
 			 if ((groupProviderId == null || !groupProviderId.contains(roster)) && !membersSelected.contains( roster ))
 			 {
-				 siteMemberLabels.add( SECTION_PREFIX + roster );
+				 siteMemberLabels.add( SECTION_PREFIX + handler.getRosterLabel(roster) + " (" + roster + ")");
 				 siteMemberValues.add( roster );
 			 }
 		 }
@@ -302,7 +302,7 @@ public class GroupEditProducer implements ViewComponentProducer, ActionResultInt
 		 {
 			 for (String groupRoster:groupRosters)
 			 {
-				 groupMemberLabels.add( SECTION_PREFIX + groupRoster );
+				 groupMemberLabels.add( SECTION_PREFIX + handler.getRosterLabel(groupRoster) + " (" + groupRoster + ")" );
 				 groupMemberValues.add( groupRoster );
 			 }
 		 }
@@ -345,7 +345,7 @@ public class GroupEditProducer implements ViewComponentProducer, ActionResultInt
                 // Selected roster...
                 if( siteRosters.contains( memberID ) )
                 {
-                    groupMemberLabels.add( SECTION_PREFIX + memberID );
+                    groupMemberLabels.add( SECTION_PREFIX + handler.getRosterLabel(memberID) + " (" + memberID + ")" );
                     groupMemberValues.add( memberID );
                 }
 

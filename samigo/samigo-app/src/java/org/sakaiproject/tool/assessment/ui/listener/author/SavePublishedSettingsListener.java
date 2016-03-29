@@ -190,7 +190,9 @@ implements ActionListener
 	    }
 	    assessment.setTitle( newTitle );
 	    assessment.updateAssessmentMetaData(SecureDeliveryServiceAPI.TITLE_DECORATION, titleDecoration );
-	    
+
+	    // Save Instructor Notification value
+	    assessment.setInstructorNotification(Integer.valueOf(assessmentSettings.getInstructorNotification()));
 	    
 	    // l. FINALLY: save the assessment
 	    assessmentService.saveAssessment(assessment);
@@ -440,9 +442,20 @@ implements ActionListener
 		// set startDate, dueDate, retractDate 
 		control.setStartDate(assessmentSettings.getStartDate());
 		control.setDueDate(assessmentSettings.getDueDate());
+
+		if (assessmentSettings.getLateHandling() != null) {
+			control.setLateHandling(new Integer(assessmentSettings.getLateHandling()));
+		}
+
 		if (retractNow)
 		{
 			control.setRetractDate(new Date());
+		}
+		else if (assessmentSettings.getRetractDate() == null
+				 || "".equals(assessmentSettings.getRetractDateString()))
+		{
+			control.setLateHandling(AssessmentAccessControl.NOT_ACCEPT_LATE_SUBMISSION);
+			control.setRetractDate(null);
 		}
 		else {
 			control.setRetractDate(assessmentSettings.getRetractDate());
@@ -463,7 +476,10 @@ implements ActionListener
 		if (assessmentSettings.getItemNumbering() != null) {
 			control.setItemNumbering(new Integer(assessmentSettings.getItemNumbering()));
 		}
-
+		if (assessmentSettings.getDisplayScoreDuringAssessments() != null) {
+			control.setDisplayScoreDuringAssessments(new Integer(assessmentSettings.getDisplayScoreDuringAssessments()));
+		}
+		
 		// set Timed Assessment
 		control.setTimeLimit(assessmentSettings.getTimeLimit());
 		if (assessmentSettings.getTimedAssessment()) {
@@ -496,10 +512,7 @@ implements ActionListener
 			}
 		}
 
-		if (assessmentSettings.getLateHandling()!=null){
-			control.setLateHandling(new Integer(assessmentSettings.
-					getLateHandling()));
-		}
+
 		if (assessmentSettings.getSubmissionsSaved()!=null){
 			control.setSubmissionsSaved(new Integer(assessmentSettings.getSubmissionsSaved()));
 		}
@@ -513,10 +526,8 @@ implements ActionListener
 
 		// e. set Submission Messages
 	    control.setSubmissionMessage(assessmentSettings.getSubmissionMessage());
-	    // f. set username
-	    control.setUsername(TextFormat.convertPlaintextToFormattedTextNoHighUnicode(log, assessmentSettings.getUsername()));
 	    // g. set password
-	    control.setPassword(TextFormat.convertPlaintextToFormattedTextNoHighUnicode(log, assessmentSettings.getPassword()));
+	    control.setPassword(TextFormat.convertPlaintextToFormattedTextNoHighUnicode(log, StringUtils.trim(assessmentSettings.getPassword())));
 	    // h. set finalPageUrl
 	    String finalPageUrl = "";
 	    if (assessmentSettings.getFinalPageUrl() != null) {

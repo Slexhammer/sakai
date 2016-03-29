@@ -245,7 +245,7 @@ public class ItemService
   public ItemData cloneItem(ItemDataIfc item){
     ItemData cloned= new ItemData(
         item.getSection(),item.getSequence(), item.getDuration(), item.getInstruction(),
-        item.getDescription(),item.getTypeId(),item.getGrade(),item.getScore(), item.getDiscount(),
+        item.getDescription(),item.getTypeId(),item.getGrade(),item.getScore(), item.getScoreDisplayFlag(), item.getDiscount(), item.getMinScore(),
         item.getHint(),item.getHasRationale(),item.getStatus(),item.getCreatedBy(),
         item.getCreatedDate(),item.getLastModifiedBy(),item.getLastModifiedDate(),
         null, null, null, item.getTriesAllowed(), item.getPartialCreditFlag());
@@ -260,6 +260,7 @@ public class ItemService
     cloned.setItemFeedbackSet(newItemFeedbackSet);
     cloned.setItemAttachmentSet(newItemAttachmentSet);
     cloned.setAnswerOptionsSimpleOrRich(item.getAnswerOptionsSimpleOrRich());
+    cloned.setAnswerOptionsRichCount(item.getAnswerOptionsRichCount());
 
     return cloned;
   }

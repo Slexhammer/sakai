@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.sakaiproject.content</groupId>
     <artifactId>cloud-content</artifactId>
-    <version>11-SNAPSHOT</version>
+    <version>12-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -24,8 +24,16 @@
       <artifactId>sakai-kernel-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.sakaiproject.kernel</groupId>
+      <artifactId>sakai-component-manager</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-logging</groupId>

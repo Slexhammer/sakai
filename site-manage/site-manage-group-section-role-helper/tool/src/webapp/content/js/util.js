@@ -227,7 +227,7 @@ setupValidation = function(){
             return false;
         }
         else{
-            disableButtonsActivateSpinner( "save", "cancel", "autoGroupsSpinner" );
+            SPNR.disableControlsAndSpin( this, null );
             return true;
         }
     });
@@ -252,44 +252,6 @@ function resizeFrame(updown){
     else {
         throw ("resizeFrame did not get the frame (using name=" + window.name + ")");
     }
-}
-
-function disableButtonsActivateSpinner( primaryActionID, secondaryActionID, spinnerID ) 
-{
-    // Clone & disable the buttons (disable the clone, hide the original)
-    var btnPrimary = document.getElementById( primaryActionID );
-    var btnSecondary = document.getElementById( secondaryActionID );
-    var btnDelete = document.getElementById( "delete" );
-    var btnGenerate = document.getElementById( "generate-row::generate" );
-    var list = [btnPrimary, btnSecondary];
-    
-    if( btnDelete !== null )
-    {
-        list.push(btnDelete);
-    }
-    if( btnGenerate !== null )
-    {
-        list.push(btnGenerate);
-    }
-    
-    for( i = 0; i < list.length; i++ )
-    {
-        
-        var original = list[i];
-        var clone = document.createElement( "input" );
-        var parent = original.parentNode;
-        clone.setAttribute( "type", "button" );
-        clone.setAttribute( "id", original.getAttribute( "id" ) + "Disabled" );
-        clone.setAttribute( "name", original.getAttribute( "name" ) + "Disabled" );
-        clone.setAttribute( "className", original.getAttribute( "className" ) );
-        clone.setAttribute( "disabled", "true" );
-        clone.value = original.value;
-        original.style.display = "none";
-        parent.insertBefore( clone, original );
-    }
-    
-    // Show the spinner
-    document.getElementById( spinnerID ).style.visibility = "visible";
 }
 
 function toggleCheckboxes( clickedElement )
@@ -350,21 +312,54 @@ function checkEnableRemove()
     }
 }
 
-function toggleGenPanel( clickedElement )
+function togglePanel( clickedElement, isUserPanel )
 {
     var div = clickedElement.parentNode;
     if( div.className === "edit collapsed" )
     {
         div.className = "edit expanded";
-        $( div ).siblings().show();
-        resizeFrame( "grow" );
+        if( isUserPanel )
+        {
+            $( "#userRowsContainer" ).show();
+            $( "#userRowsContainer" ).children().show();
+        }
+        else
+        {
+            $( div ).siblings().show();
+        }
     }
     else
     {
         div.className = "edit collapsed";
-        $( div ).siblings().hide();
-        resizeFrame( "shrink" );
+        if( isUserPanel )
+        {
+            $( "#userRowsContainer" ).hide();
+            $( "#userRowsContainer" ).children().hide();
+        }
+        else
+        {
+            $( div ).siblings().hide();
+        }
     }
+}
+
+function adjustDivHeights()
+{
+    var userRowsHeader = document.getElementById( "usersNotInSet-title-row::" );
+    var userPanelExpanded = userRowsHeader.classList.contains( "expanded" );
+    var groupFieldsHeight = document.getElementById( "groupFields" ).offsetHeight;
+    var userRowsHeaderHeight = userRowsHeader.offsetHeight;
+    var actualHeight = groupFieldsHeight - userRowsHeaderHeight;
+    var userRowsContainer = document.getElementById( "userRowsContainer" );
+    var style = "height: " + actualHeight + "px" + (userPanelExpanded ? "; overflow-y: scroll;" : ";" );
+    userRowsContainer.setAttribute( "style", style );
+    userRowsContainer.style.height = actualHeight + "px";
+    if( userPanelExpanded )
+    {
+        userRowsContainer.style.overflowY = "scroll";
+    }
+
+     resizeFrame( "grow" );
 }
 
 function adjustCount(caller, countName)

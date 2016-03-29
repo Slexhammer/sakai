@@ -97,6 +97,7 @@ import org.sakaiproject.tool.assessment.data.ifc.assessment.AssessmentAccessCont
 import org.sakaiproject.tool.assessment.data.ifc.assessment.AssessmentAttachmentIfc;
 import org.sakaiproject.tool.assessment.data.ifc.assessment.AssessmentBaseIfc;
 import org.sakaiproject.tool.assessment.data.ifc.assessment.AssessmentIfc;
+import org.sakaiproject.tool.assessment.data.ifc.assessment.AttachmentIfc;
 import org.sakaiproject.tool.assessment.data.ifc.assessment.EvaluationModelIfc;
 import org.sakaiproject.tool.assessment.data.ifc.assessment.ItemDataIfc;
 import org.sakaiproject.tool.assessment.data.ifc.assessment.ItemMetaDataIfc;
@@ -276,9 +277,9 @@ public class PublishedAssessmentFacadeQueries extends HibernateDaoSupport
 		publishedAccessControl.setAutoSubmit(a.getAutoSubmit());
 		publishedAccessControl.setItemNavigation(a.getItemNavigation());
 		publishedAccessControl.setItemNumbering(a.getItemNumbering());
+		publishedAccessControl.setDisplayScoreDuringAssessments(a.getDisplayScoreDuringAssessments());
 		publishedAccessControl.setSubmissionMessage(a.getSubmissionMessage());
 		publishedAccessControl.setReleaseTo(a.getReleaseTo());
-		publishedAccessControl.setUsername(a.getUsername());
 		publishedAccessControl.setPassword(a.getPassword());
 		publishedAccessControl.setFinalPageUrl(a.getFinalPageUrl());
 		publishedAccessControl.setUnlimitedSubmissions(a
@@ -388,7 +389,7 @@ public class PublishedAssessmentFacadeQueries extends HibernateDaoSupport
 			PublishedItemData publishedItem = new PublishedItemData(
 					publishedSection, item.getSequence(), item.getDuration(),
 					item.getInstruction(), item.getDescription(), item
-							.getTypeId(), item.getGrade(), item.getScore(), item.getDiscount(),
+							.getTypeId(), item.getGrade(), item.getScore(), item.getScoreDisplayFlag(), item.getDiscount(), item.getMinScore(),
 					item.getHint(), item.getHasRationale(), item.getStatus(),
 					item.getCreatedBy(), item.getCreatedDate(), item
 							.getLastModifiedBy(), item.getLastModifiedDate(),
@@ -2202,7 +2203,7 @@ public class PublishedAssessmentFacadeQueries extends HibernateDaoSupport
 				+ " a.assessmentGradingId, p.publishedAssessmentId, p.title, a.agentId,"
 				+ " a.submittedDate, a.isLate,"
 				+ " a.forGrade, a.totalAutoScore, a.totalOverrideScore,a.finalScore,"
-				+ " a.comments, a.status, a.gradedBy, a.gradedDate, a.attemptDate,"
+				+ " '', a.status, a.gradedBy, a.gradedDate, a.attemptDate,"
 				+ " a.timeElapsed) "
 				+ " from AssessmentGradingData a, PublishedAssessmentData p, AuthorizationData az"
 				+ " where a.publishedAssessmentId = p.publishedAssessmentId"
@@ -2994,8 +2995,10 @@ public class PublishedAssessmentFacadeQueries extends HibernateDaoSupport
 		}
 	}
 	
-	public void saveOrUpdateAttachments(List list) {
-		getHibernateTemplate().saveOrUpdateAll(list);
+	public void saveOrUpdateAttachments(List<AttachmentIfc> list) {
+	    for (AttachmentIfc attachment : list) {
+	        getHibernateTemplate().saveOrUpdate(attachment);
+        }
 	}
 	
 	  public PublishedAssessmentFacade getPublishedAssessmentInfoForRemove(Long publishedAssessmentId) {

@@ -87,9 +87,20 @@
  <!-- 1 POINTS -->
   <div class="tier2">
    <div class="shorttext"> <h:outputLabel value="#{authorMessages.answer_point_value}" />
-    	<h:inputText id="answerptr" value="#{itemauthor.currentItem.itemScore}" required="true" size="6" onchange="toPoint(this.id);">
-		<f:validateDoubleRange /></h:inputText>
-		<h:message for="answerptr" styleClass="validate" />
+     <h:inputText id="answerptr" label="#{authorMessages.pt}" value="#{itemauthor.currentItem.itemScore}" required="true" size="6" onchange="toPoint(this.id);">
+       <f:validateDoubleRange />
+     </h:inputText>
+     <h:message for="answerptr" styleClass="validate" />
+   </div>
+   <div class="longtext">
+       <h:outputLabel value="#{authorMessages.answer_point_value_display}" />    </div>
+   <div class="tier3">
+       <h:selectOneRadio value="#{itemauthor.currentItem.itemScoreDisplayFlag}" >
+       <f:selectItem itemValue="true"
+                     itemLabel="#{authorMessages.yes}" />
+       <f:selectItem itemValue="false"
+                     itemLabel="#{authorMessages.no}" />
+       </h:selectOneRadio>
    </div>
 	<br/>
 	
@@ -178,7 +189,7 @@
 </div>
 <div class="tier2">
 <%-- 3 PART --%>
-<h:panelGrid columns="3" columnClasses="shorttext" rendered="#{itemauthor.target == 'assessment'}">
+<h:panelGrid columns="3" columnClasses="shorttext" rendered="#{itemauthor.target == 'assessment' && !author.isEditPoolFlow}">
   <h:outputLabel value="#{authorMessages.assign_to_p}" />
   <h:selectOneMenu id="assignToPart" value="#{itemauthor.currentItem.selectedSection}">
      <f:selectItems  value="#{itemauthor.sectionSelectList}" />
@@ -204,7 +215,7 @@
   <!-- WYSIWYG -->
   <h:panelGrid>
    <samigo:wysiwyg rows="140" value="#{itemauthor.currentItem.generalFeedback}" hasToggle="yes" mode="author">
-     <f:validateLength maximum="4000"/>
+     <f:validateLength maximum="60000"/>
    </samigo:wysiwyg>
   </h:panelGrid>
  <f:verbatim> </div></div></f:verbatim>

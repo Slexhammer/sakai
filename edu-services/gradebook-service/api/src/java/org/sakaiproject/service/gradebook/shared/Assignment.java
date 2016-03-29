@@ -25,6 +25,8 @@ import java.io.Serializable;
 import java.util.Date;
 
 import org.apache.commons.lang.builder.CompareToBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 
 /**
  * JavaBean to hold data associated with a Gradebook assignment.
@@ -49,7 +51,9 @@ public class Assignment implements Serializable, Comparable<Assignment> {
     //Needed for transfer
     private boolean categoryExtraCredit;
     private Integer sortOrder;
+    private Integer categorizedSortOrder;
     private Long categoryId;
+    private Integer categoryOrder;
     
 
     public Assignment() {
@@ -231,6 +235,14 @@ public class Assignment implements Serializable, Comparable<Assignment> {
 	public void setCategoryId(Long categoryId) {
 		this.categoryId = categoryId;
 	}
+
+	public Integer getCategoryOrder() {
+		return categoryOrder;
+	}
+
+	public void setCategoryOrder(Integer categoryOrder) {
+		this.categoryOrder = categoryOrder;
+	}
 	
 	@Override
 	public int compareTo(Assignment o) {
@@ -238,5 +250,17 @@ public class Assignment implements Serializable, Comparable<Assignment> {
 	       .append(this.id, o.id)
 	       .toComparison();
 	}
+	
+	@Override
+	public String toString() {
+		return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
+	}
 
+	public Integer getCategorizedSortOrder() {
+		return categorizedSortOrder;
+	}
+
+	public void setCategorizedSortOrder(Integer categorizedSortOrder) {
+		this.categorizedSortOrder = categorizedSortOrder;
+	}
 }

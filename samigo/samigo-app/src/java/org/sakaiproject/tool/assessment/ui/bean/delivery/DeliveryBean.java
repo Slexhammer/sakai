@@ -30,14 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.util.*;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.ExternalContext;
@@ -51,6 +44,7 @@ import org.sakaiproject.component.cover.ServerConfigurationService;
 import org.sakaiproject.event.cover.EventTrackingService;
 import org.sakaiproject.event.cover.NotificationService;
 import org.sakaiproject.exception.IdUnusedException;
+import org.sakaiproject.samigo.util.SamigoConstants;
 import org.sakaiproject.site.api.Site;
 import org.sakaiproject.site.api.SitePage;
 import org.sakaiproject.site.api.ToolConfiguration;
@@ -59,11 +53,11 @@ import org.sakaiproject.tool.api.Placement;
 import org.sakaiproject.tool.api.Session;
 import org.sakaiproject.tool.assessment.api.SamigoApiFactory;
 import org.sakaiproject.tool.assessment.data.dao.assessment.EventLogData;
-import org.sakaiproject.tool.assessment.data.dao.assessment.PublishedAssessmentData;
 import org.sakaiproject.tool.assessment.data.dao.assessment.PublishedItemData;
 import org.sakaiproject.tool.assessment.data.dao.assessment.PublishedItemText;
 import org.sakaiproject.tool.assessment.data.dao.assessment.PublishedSectionData;
 import org.sakaiproject.tool.assessment.data.dao.assessment.PublishedSecuredIPAddress;
+import org.sakaiproject.tool.assessment.data.dao.grading.AssessmentGradingAttachment;
 import org.sakaiproject.tool.assessment.data.dao.grading.AssessmentGradingData;
 import org.sakaiproject.tool.assessment.data.dao.grading.ItemGradingData;
 import org.sakaiproject.tool.assessment.data.dao.grading.MediaData;
@@ -99,7 +93,6 @@ import org.sakaiproject.tool.cover.SessionManager;
 import org.sakaiproject.tool.cover.ToolManager;
 import org.sakaiproject.util.ResourceLoader;
 
-import uk.org.ponder.rsf.state.support.TMLFixer;
 import org.apache.commons.lang.StringUtils;
 /**
  *
@@ -142,7 +135,6 @@ public class DeliveryBean
   private String timeOutSubmission;
   private String submissionTicket;
   private String timeElapse;
-  private String username;
   private int sectionIndex;
   private boolean previous;
   private String duration;
@@ -171,6 +163,8 @@ public class DeliveryBean
   private boolean submitted;
   private boolean graded;
   private String graderComment;
+  private List<AssessmentGradingAttachment> assessmentGradingAttachmentList;
+  private boolean hasAssessmentGradingAttachment;
   private String rawScore;
   private String grade;
   private java.util.Date submissionDate;
@@ -299,6 +293,10 @@ public class DeliveryBean
   private static ResourceBundle eventLogMessages = ResourceBundle.getBundle("org.sakaiproject.tool.assessment.bundle.EventLogMessages");
 
   private static String EXTENDED_TIME_KEY = "extendedTime";
+
+  private static String questionProgressUnansweredPath = ServerConfigurationService.getString("samigo.questionprogress.unansweredpath", "/images/whiteBubble15.png");
+  private static String questionProgressAnsweredPath = ServerConfigurationService.getString("samigo.questionprogress.answeredpath", "/images/blackBubble15.png");
+  private static String questionProgressMardPath = ServerConfigurationService.getString("samigo.questionprogress.mardpath", "/images/questionMarkBubble15.png");
   
   /**
    * Creates a new DeliveryBean object.
@@ -649,26 +647,6 @@ public class DeliveryBean
   public int getDisplayIndex()
   {
     return this.itemIndex + 1;
-  }
-
-  /**
-   *
-   *
-   * @return
-   */
-  public String getUsername()
-  {
-    return username;
-  }
-
-  /**
-   *
-   *
-   * @param username
-   */
-  public void setUsername(String username)
-  {
-    this.username = username;
   }
 
   /**
@@ -1241,6 +1219,23 @@ public class DeliveryBean
   {
     graderComment = newComment;
   }
+  
+  public List<AssessmentGradingAttachment> getAssessmentGradingAttachmentList() {
+	return assessmentGradingAttachmentList;
+  }
+  
+  public void setAssessmentGradingAttachmentList(
+		List<AssessmentGradingAttachment> assessmentGradingAttachmentList) {
+	this.assessmentGradingAttachmentList = assessmentGradingAttachmentList;
+  }
+  
+  public boolean isHasAssessmentGradingAttachment() {
+	return hasAssessmentGradingAttachment;
+  }
+  
+  public void setHasAssessmentGradingAttachment(boolean hasAssessmentGradingAttachment) {
+	this.hasAssessmentGradingAttachment = hasAssessmentGradingAttachment;
+  }
 
   public String getRawScore()
   {
@@ -1556,6 +1551,8 @@ public class DeliveryBean
    
   private String submitForGrade(boolean isFromTimer, boolean submitFromTimeoutPopup) {
 	try{
+	  Map<String, Object> notificationValues = new HashMap<String, Object>();
+	  Long local_assessmentGradingID = adata.getAssessmentGradingId();
 	  if (this.actionMode == PREVIEW_ASSESSMENT) {
 		  return "editAssessment";
 	  }	  
@@ -1610,28 +1607,28 @@ public class DeliveryBean
 	  }
 
 	  String returnValue="submitAssessment";
+	  PublishedAssessmentService publishedAssessmentService = new PublishedAssessmentService();
+	  String siteId = publishedAssessmentService.getPublishedAssessmentOwner(adata.getPublishedAssessmentId());
+	  String resource = "siteId=" + AgentFacade.getCurrentSiteId() + ", submissionId=" + local_assessmentGradingID;
+
 	  if (!isFromTimer) {
 		  if (this.actionMode == TAKE_ASSESSMENT_VIA_URL) // this is for accessing via published url
 		  {
 			  returnValue="anonymousThankYou";
-			  PublishedAssessmentService publishedAssessmentService = new PublishedAssessmentService();
-			  String siteId = publishedAssessmentService.getPublishedAssessmentOwner(adata.getPublishedAssessmentId());
-			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.submit.via_url", "siteId=" + AgentFacade.getCurrentSiteId() + ", submissionId=" + adata.getAssessmentGradingId(), siteId, true, NotificationService.NOTI_REQUIRED)); 
+			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.submit.via_url", resource, siteId, true, NotificationService.NOTI_REQUIRED)); 
 		  }
 		  else {
-			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.submit", "siteId=" + AgentFacade.getCurrentSiteId() + ", submissionId=" + adata.getAssessmentGradingId(), true));
+			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.submit", resource, true));
 		  }
 	  }
 	  else {
 		  if (this.actionMode == TAKE_ASSESSMENT_VIA_URL) // this is for accessing via published url
 		  {
 			  returnValue="anonymousThankYou";
-			  PublishedAssessmentService publishedAssessmentService = new PublishedAssessmentService();
-			  String siteId = publishedAssessmentService.getPublishedAssessmentOwner(adata.getPublishedAssessmentId());
-			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.timer_submit.url", "siteId=" + AgentFacade.getCurrentSiteId() + ", submissionId=" + adata.getAssessmentGradingId(), siteId, true, NotificationService.NOTI_REQUIRED));      
+			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.timer_submit.url", resource , siteId, true, NotificationService.NOTI_REQUIRED));
 		  }
 		  else {
-			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.timer_submit", "siteId=" + AgentFacade.getCurrentSiteId() + ", submissionId=" + adata.getAssessmentGradingId(), true));
+			  EventTrackingService.post(EventTrackingService.newEvent("sam.assessment.timer_submit", resource, true));
 		  }
 	  }
 	  forGrade = false;
@@ -1677,6 +1674,13 @@ public class DeliveryBean
 	 	     eventLogFacade.setData(eventLogData);
 	 	 
 	 	     eventService.saveOrUpdateEventLog(eventLogFacade);
+
+	 	     notificationValues.put("assessmentGradingID", local_assessmentGradingID);
+	 	     notificationValues.put("userID", adata.getAgentId());
+	 	     notificationValues.put("submissionDate", getSubmissionDateString());
+	 	     notificationValues.put("publishedAssessmentID", adata.getPublishedAssessmentId());
+
+	 	     EventTrackingService.post(EventTrackingService.newEvent(SamigoConstants.EVENT_ASSESSMENT_SUBMITTED, notificationValues.toString(), AgentFacade.getCurrentSiteId(), true, SamigoConstants.NOTI_EVENT_ASSESSMENT_SUBMITTED));
  
 	  return returnValue;
 	 }catch(Exception e) {
@@ -2128,25 +2132,16 @@ public class DeliveryBean
 
   public String validatePassword()
   {
-    log.debug("**** username=" + username);
     log.debug("**** password=" + password);
-    log.debug("**** setting username=" + getSettings().getUsername());
     log.debug("**** setting password=" + getSettings().getPassword());
     
-    if (password == null && username == null)
+    if (StringUtils.isBlank(password))
     {
     	return "passwordAccessError";
     }
-    if(!"".equals(getSettings().getUsername()))
+    if(StringUtils.isNotBlank(getSettings().getPassword()))
     {
-    	if (username != null && !username.equals(getSettings().getUsername()))
-    	{
-    		return "passwordAccessError";
-    	}
-    }
-    if(!"".equals(getSettings().getPassword()))
-    {
-    	if (password != null && !password.equals(getSettings().getPassword()))
+    	if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(getSettings().getPassword())))
     	{
     		return "passwordAccessError";
     	}
@@ -2195,7 +2190,7 @@ public class DeliveryBean
       EventLogData eventLogData = new EventLogData();
       
       // #1. check password
-      if (!getSettings().getUsername().equals("") || !getSettings().getPassword().equals(""))
+      if (!getSettings().getPassword().equals(""))
       {
         results = validatePassword();
         log.debug("*** checked password="+results);
@@ -3058,6 +3053,9 @@ public class DeliveryBean
   }
 
   private void removeTimedAssessmentFromQueue(){
+    if (adata==null) {
+      return;
+    }
     TimedAssessmentQueue queue = TimedAssessmentQueue.getInstance();
     TimedAssessmentGradingModel timedAG = (TimedAssessmentGradingModel)queue.
                                              get(adata.getAssessmentGradingId());
@@ -3069,6 +3067,12 @@ public class DeliveryBean
 
   public void syncTimeElapsedWithServer(){
 	    if (("takeAssessment").equals(actionString) || ("takeAssessmentViaUrl").equals(actionString)){
+	      if (adata==null) {
+	         if (log.isDebugEnabled()) {
+	            log.debug("aData is null for actionString"+actionString);
+	         }
+	         return;
+	      }
 	      TimedAssessmentQueue queue = TimedAssessmentQueue.getInstance();
 	      TimedAssessmentGradingModel timedAG = queue.get(adata.getAssessmentGradingId());
 	      if (timedAG != null){
@@ -3088,6 +3092,12 @@ public class DeliveryBean
 	  
 	  public void syncTimeElapsedWithServerLinear(){
 		    if (("takeAssessment").equals(actionString) || ("takeAssessmentViaUrl").equals(actionString)){
+		      if (adata==null) {
+		          if (log.isDebugEnabled()) {
+		              log.debug("aData is null for actionString"+actionString);
+		          }
+		          return;
+		      }
 		      TimedAssessmentQueue queue = TimedAssessmentQueue.getInstance();
 		      TimedAssessmentGradingModel timedAG = queue.get(adata.getAssessmentGradingId());
 		      if (timedAG != null){
@@ -3756,7 +3766,7 @@ public class DeliveryBean
 	  }
 	  
 	  private String getTimeBeforeRetract(String timeLimit) {
-		  retractDate = publishedAssessment.getRetractDate();
+		  
 		  if (timeLimit != null && Integer.parseInt(timeLimit) > 0) {
 			  int timeBeforeRetract  = Math.round((retractDate.getTime() - beginTime.getTime())/1000.0f);
 			  if (timeBeforeRetract < Integer.parseInt(timeLimit)) {
@@ -4120,6 +4130,17 @@ public class DeliveryBean
 		  headMJ.append("<script src=\"").append(MATHJAX_SRC_PATH).append("\"  language=\"JavaScript\" type=\"text/javascript\"></script>\n");
 		  return headMJ.toString();
 	  }
-	  
+
+    public String getQuestionProgressUnansweredPath () {
+      return questionProgressUnansweredPath;
+    }
+
+    public String getQuestionProgressAnsweredPath () {
+      return questionProgressAnsweredPath;
+    }
+
+    public String getQuestionProgressMardPath () {
+      return questionProgressMardPath;
+    }
 }
 

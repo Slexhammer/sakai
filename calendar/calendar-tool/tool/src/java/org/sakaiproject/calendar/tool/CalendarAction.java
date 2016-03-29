@@ -4038,7 +4038,11 @@ extends VelocityPortletStateAction
 		}
 
 		context.put("serverName", ServerConfigurationService.getServerName());
-		
+
+		String icalInfoArr[] = {String.valueOf(ServerConfigurationService.getInt("calendar.export.previous.months",6)),
+			String.valueOf(ServerConfigurationService.getInt("calendar.export.next.months",6))};
+		String icalInfoStr = rb.getFormattedMessage("ical.info",icalInfoArr);
+		context.put("icalInfoStr",icalInfoStr);
 			
 		// Add iCal Export URL
 		Reference calendarRef = EntityManager.newReference(calId);
@@ -4066,6 +4070,10 @@ extends VelocityPortletStateAction
 		context.put("isMyWorkspace", isOnWorkspaceTab());
 		context.put("form-generate", BUTTON + "doOpaqueUrlGenerate");
 		context.put("form-cancel", BUTTON + "doCancel");
+		String icalInfoArr[] = {String.valueOf(ServerConfigurationService.getInt("calendar.export.previous.months",6)),
+			String.valueOf(ServerConfigurationService.getInt("calendar.export.next.months",6))};
+		String icalInfoStr = rb.getFormattedMessage("ical.info",icalInfoArr);
+		context.put("icalInfoStr",icalInfoStr);
 	}
 	
 	/**
@@ -4077,6 +4085,12 @@ extends VelocityPortletStateAction
 		Reference calendarRef = EntityManager.newReference(calId);
 		String opaqueUrl = ServerConfigurationService.getAccessUrl()
 			+ CalendarService.calendarOpaqueUrlReference(calendarRef);
+
+		String icalInfoArr[] = {String.valueOf(ServerConfigurationService.getInt("calendar.export.previous.months",6)),
+			String.valueOf(ServerConfigurationService.getInt("calendar.export.next.months",6))};
+		String icalInfoStr = rb.getFormattedMessage("ical.info",icalInfoArr);
+		context.put("icalInfoStr",icalInfoStr);
+
 		context.put("opaqueUrl", opaqueUrl);
 		context.put("webcalUrl", opaqueUrl.replaceFirst("http", "webcal"));
 		context.put("isMyWorkspace", isOnWorkspaceTab());
@@ -4260,7 +4274,7 @@ extends VelocityPortletStateAction
 					if ((m_calObj.getDay_Of_Week(true))== 7) // if end of week, exit the loop
 					{
 						row  = 7;
-						col = SECOND_PAGE_START_HOUR;
+						col = 8;
 					}
 					else // if it is not the end of week, complete with days from next month
 					{

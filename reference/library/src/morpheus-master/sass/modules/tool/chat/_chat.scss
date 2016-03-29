@@ -17,21 +17,26 @@
 		    position: fixed;
 		    bottom: 0px;
 		    right: 20px;
+		    z-index: 2;
 		}
 		&__portalChat{
-		    width: 205px;
+		    width: 226px;
 		}
 		&--toggle{
-		    display: inline-block;
+		    display: block;
 		    padding: 2px 0px 0px 0px;
-		    color: $footerApp__chat__header__color;
+		    color: $footerApp__chat__background !important;
 		    text-decoration: none;
 		    height: 16px;
 		    font-weight: bold;
+		    &:hover, &:link, &:active {
+		    	color: $footerApp__chat__background;
+		    	text-decoration: none;
+		    }
 		}
 		&--count.present{
-		    min-width: 15px;
-		    height: 15px;
+		    min-width: 20px;
+		    height: 20px;
 		    display: inline-block;
 		    border-radius: 10px;
 		    text-align: center;
@@ -39,7 +44,7 @@
 		    vertical-align: text-bottom;
 		    border: 1px solid #FFF;
 		    margin-left: 5px;
-		    padding: 2px;
+		    padding: 0;
 		    font-size: 0.8em;
 		  }
 		  &--count.empty{
@@ -113,16 +118,16 @@
 		    width: 225px;
 		    background-color: $footerApp__chat__background;
 		    position: fixed;
-		    bottom: 35px;
+		    bottom: 30px;
 		   
 		    /* Needs to be to the right of the expanded presence block. See presenceArea. */
-		    right: 20px;
+		    right: 21px;
 		    z-index: 2001;
 		    margin: 0px;
 		    padding: 0px;
 		    display: none;
 
-		    @include box-shadow( 0 -2px 2px rgba( $text-color, 0.5 ) );
+		    box-shadow: 0 -2px 2px rgba( $text-color, 0.5 );
 			
 			h5{
 				margin-bottom: 5px !important;
@@ -159,7 +164,7 @@
     			 h2{
     			 	background: none;
     			 	color: $footerApp__chat__color;
-    			 	padding: 2px 0px;
+    			 	padding: 6px 0px 6px 0;
     			 	font-size: 1em;
     			 	margin: 0px 3px;
     			 }

@@ -4,7 +4,7 @@
 	<parent>
         <groupId>org.sakaiproject.site</groupId>
         <artifactId>site</artifactId>
-        <version>11-SNAPSHOT</version>
+        <version>12-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 	<groupId>org.sakaiproject.mbm.tool</groupId>
@@ -27,7 +27,7 @@
 		<!-- thymeleaf template engine -->
 		<dependency>
 			<groupId>org.thymeleaf</groupId>
-			<artifactId>thymeleaf-spring3</artifactId>
+			<artifactId>thymeleaf-spring4</artifactId>
 			<version>2.1.4.RELEASE</version>
 		</dependency>
 		<!-- dandelion datatables -->

@@ -68,12 +68,7 @@ var blankRubricTemplate, blankRubricRow;
 // Note from Chuck S. - Is there a strong reason to do this before ready()?
 // $(function() {
 $(document).ready(function() {
-	var breadcrumbs = $(".breadcrumbs span");
-	if (breadcrumbs.size() > 0) {
-	    $(".Mrphs-toolTitleNav__addLeft").append($(".breadcrumbs span"));
-	    $(".Mrphs-toolTitleNav__text").hide();
-	}
-	$(".Mrphs-toolTitleNav__addRight").append($(".action"));
+	// if we're in morpheus, move breadcrums into top bar, and generate an H2 with the title
 
 	// This is called in comments.js as well, however this may be faster.
 	//if(sakai.editor.editors.ckeditor==undefined) {
@@ -215,7 +210,15 @@ $(document).ready(function() {
 			modal: true,
 			resizable: false,
 			draggable: false
-		});
+		}).parent('.ui-dialog').css('zIndex',150000);
+
+		$('#column-dialog').dialog({
+			autoOpen: false,
+			modal: true,
+			width: 'auto',
+			resizable: false,
+			draggable: true
+		}).parent('.ui-dialog').css('zIndex',150000);
 
 		$('#delete-confirm').dialog({
 			autoOpen: false,
@@ -235,7 +238,7 @@ $(document).ready(function() {
 			var modalDialogList = ['#subpage-dialog', '#edit-item-dialog', '#edit-multimedia-dialog',
 			'#add-multimedia-dialog', '#edit-title-dialog', '#new-page-dialog', '#remove-page-dialog',
 			'#youtube-dialog', '#movie-dialog', '#import-cc-dialog', '#export-cc-dialog',
-			'#comments-dialog', '#student-dialog', '#question-dialog', '#delete-confirm'];
+		        '#comments-dialog', '#student-dialog', '#question-dialog', '#delete-confirm'];
 			for (var i = 0; i < modalDialogList.length; i++) {
 				$(modalDialogList[i]).dialog("option", "width", modalDialogWidth());
 			}
@@ -741,6 +744,11 @@ $(document).ready(function() {
 			if (groupOwned === "true")
 			    $("#student-group-show").show();
 
+			var groupOwnedIndividual = row.find('.student-owned-eval-individual').text();
+			$("#student-group-owned-eval-individual").prop("checked",(groupOwnedIndividual === "true"));
+			var seeOnlyOwn = row.find('.student-owned-see-only-own').text();
+			$("#student-group-owned-see-only-own").prop("checked",(seeOnlyOwn === "true"));
+
 			var itemId = row.find(".student-id").text();
 			
 			$("#studentEditId").val(itemId);
@@ -1222,8 +1230,10 @@ $(document).ready(function() {
 		$('.change-resource-movie').click(function(){
 			closeMovieDialog();
 			mm_test_reset();
+			$("#mm-name-section").hide();
+			$("#mm-prerequisite").prop('checked',$("#movie-prerequisites").prop('checked'));
 			$("#addLink_label").text(msg("simplepage.addLink_label_add_or"));
-
+			$("#mm-file-replace-group").show();
 			$("#mm-item-id").val($("#movieEditId").val());
 			$("#mm-is-mm").val('true');
 			$("#mm-add-before").val(addAboveItem);
@@ -1557,8 +1567,11 @@ $(document).ready(function() {
 		$('#change-resource').click(function(){
 			closeEditItemDialog();
 			mm_test_reset();
+			$("#mm-name-section").show();
+			$("#mm-name").val($("#name").val());
+			$("#mm-prerequisite").prop('checked',$("#item-prerequisites").prop('checked'));
 			$("#addLink_label").text(msg("simplepage.addLink_label_add"));
-
+			$("#mm-file-replace-group").show();
 			$("#mm-item-id").val($("#item-id").val());
 			$("#mm-is-mm").val('false');
 			$("#mm-add-before").val(addAboveItem);
@@ -1587,6 +1600,9 @@ $(document).ready(function() {
 			closeDropdowns();
 
 			mm_test_reset();
+			$("#mm-name-section").hide();
+			$("#mm-name").val('');
+			$("#mm-prerequisite").prop('checked',false);
 			$("#addLink_label").text(msg("simplepage.addLink_label_add_or"));
 
 			$("#mm-item-id").val(-1);
@@ -1617,6 +1633,9 @@ $(document).ready(function() {
 		$(".add-resource").click(function(){
 			oldloc = $(this);
 			closeDropdowns();
+			$("#mm-name-section").show();
+			$("#mm-name").val('');
+			$("#mm-prerequisite").prop('checked',false);
 			if ($(this).hasClass("add-at-end"))
 			    addAboveItem = '';
 			mm_test_reset();
@@ -1650,6 +1669,9 @@ $(document).ready(function() {
 			oldloc = $(".dropdown a");
 			closeDropdowns();
 			mm_test_reset();
+			$("#mm-name-section").show();
+			$("#mm-name").val('');
+			$("#mm-prerequisite").prop('checked',false);
 			$("#addLink_label").text(msg("simplepage.addLink_label_add"));
 
 			$("#mm-item-id").val(-1);
@@ -1775,8 +1797,10 @@ $(document).ready(function() {
 		$('#change-resource-mm').click(function(){
 			closeMultimediaEditDialog();
 			mm_test_reset();
+			$("#mm-name-section").hide();
+			$("#mm-prerequisite").prop('checked',$("#multi-prerequisite").prop('checked'));
 			$("#addLink_label").text(msg("simplepage.addLink_label_add_or"));
-
+			$("#mm-file-replace-group").show();
 			$("#mm-item-id").val($("#multimedia-item-id").val());
 			$("#mm-is-mm").val('true');
 			$("#mm-add-before").val(addAboveItem);
@@ -1868,8 +1892,9 @@ $(document).ready(function() {
 				$('#import-cc-dialog').dialog('isOpen') ||
 				$('#export-cc-dialog').dialog('isOpen') ||
 				$('#comments-dialog').dialog('isOpen') ||
-				$('#student-dialog').dialog('isOpen')) ||
-				$('#question-dialog').dialog('isOpen')) {
+				$('#column-dialog').dialog('isOpen') ||
+			        $('#student-dialog').dialog('isOpen') ||
+			        $('#question-dialog').dialog('isOpen'))) {
 		    unhideMultimedia();
                     $('.edit-col').removeClass('edit-colHidden');
                     $('li').removeClass('editInProgress');
@@ -1954,7 +1979,7 @@ $(document).ready(function() {
 		var tail_uls = addAboveLI.parent().nextAll();
 		var tail_cols = addAboveLI.parent().parent().nextAll();
 		var section = addAboveLI.parent().parent().parent();
-		section.after('<div class="section"><div class="column"><ul border="0" role="list" style="z-index: 1;" class="indent mainList"></ul></div></div>');
+		section.after('<div class="section"><div class="column"><div class="editsection"><span class="sectionedit"><h3 class="offscreen">' + msg('simplepage.break-here') + '</h3><a href="/' + newitem + '" title="' + msg('simplepage.join-items') + '" class="section-merge-link" onclick="return false"><span aria-hidden="true" class="fa-compress fa-edit-icon sectioneditfont"></span></a></span><span class="sectionedit sectionedit2"><a href="/lessonbuilder-tool/templates/#" title="' + msg('simplepage.columnopen') + '" class="columnopen"><span aria-hidden="true" class="fa-cog fa-edit-icon sectioneditfont"></span></a></span></div><span class="sectionedit addbottom"><a href="#" title="Add new item at bottom of this column" class="add-bottom"><span aria-hidden="true" class="fa-edit-icon plus-edit-icon">+</span></a></span><ul border="0" role="list" style="z-index: 1;" class="indent mainList"><li class="breaksection" role="listitem"></li></ul></div></div>');
 		// now go to new section
 		section = section.next();
 		// and move current item and following into the first col of the new section
@@ -1962,10 +1987,10 @@ $(document).ready(function() {
 		section.find(".column").append(tail_uls);
 		section.append(tail_cols);
 
-		// add break item before new first item
-		addAboveLI.before('<li role="listitem" class="breaksection"><div class="sectionedit"><h3 class="offscreen"><span>' + msg('simplepage.break-here') + '</span></h3><a href="/' + newitem + '" title="' + msg('simplepage.join-items') +'" class="section-merge-link" onclick="return false"><span aria-hidden="true" class="fa-compress fa-edit-icon sectioneditfont"></span></a></div></li>');
 		// need trigger on the A we just added
-		addAboveLI.prev().find('.section-merge-link').click(sectionMergeLink);
+		section.find('.section-merge-link').click(sectionMergeLink);
+		section.find('.columnopen').click(columnOpenLink);
+		section.find('.add-bottom').click(buttonOpenDropdownb);
 		fixupColAttrs();
 		fixupHeights();
 		closeDropdownc();
@@ -1981,17 +2006,16 @@ $(document).ready(function() {
 		// current section DIV
 		var tail_uls = addAboveLI.parent().nextAll();
 		var column = addAboveLI.parent().parent();
-		column.after('<div class="column"><ul border="0" role="list" style="z-index: 1;" class="indent mainList"></ul></div>');
+		column.after('<div class="column"><div class="editsection"><span class="sectionedit"><h3 class="offscreen">' + msg('simplepage.break-column-here') + '</h3><a href="/' + newitem + '" title="' + msg('simplepage.join-items') + '" class="column-merge-link" onclick="return false"><span aria-hidden="true" class="fa-compress fa-edit-icon sectioneditfont"></span></a></span><span class="sectionedit sectionedit2"><a href="/lessonbuilder-tool/templates/#" title="' + msg('simplepage.columnopen') + '" class="columnopen"><span aria-hidden="true" class="fa-cog fa-edit-icon sectioneditfont"></span></a></span></div><span class="sectionedit addbottom"><a href="#" title="Add new item at bottom of this column" class="add-bottom"><span aria-hidden="true" class="fa-edit-icon plus-edit-icon">+</span></a></span><ul border="0" role="list" style="z-index: 1;" class="indent mainList"><li class="breaksection" role="listcolumn"></li></ul></div>');
 		// now go to new section
 		column = column.next();
 		// and move current item and following into the first col of the new section
 		column.find("ul").append(addAboveLI, tail_lis);
 		column.find(".column").append(tail_uls);
-
-		// add break item before new first item
-		addAboveLI.before('<li role="listitem" class="breakcolumn"><div class="sectionedit"><h3 class="offscreen"><span>' + msg('simplepage.break-here') + '</span></h3><a href="/' + newitem + '" title="' + msg('simplepage.join-items') +'" class="column-merge-link" onclick="return false"><span aria-hidden="true" class="fa-compress fa-edit-icon sectioneditfont"></span></a></div></li>');
 		// need trigger on the A we just added
-		addAboveLI.prev().find('.column-merge-link').click(columnMergeLink);
+		column.find('.column-merge-link').click(columnMergeLink);
+		column.find('.columnopen').click(columnOpenLink);
+		column.find('.add-bottom').click(buttonOpenDropdownb);
 		fixupColAttrs();
 		fixupHeights();
 		closeDropdownc();
@@ -2003,14 +2027,14 @@ $(document).ready(function() {
 	function sectionMergeLink(e) {
 		e.preventDefault();
 		deleteBreak($(this).attr('href').substring(1));
-		// this is a break li, so it won't be needed
-		var thisLI = $(this).parents('li');
-		var tail_lis = thisLI.nextAll();
-		var tail_uls = thisLI.parent().nextAll();
-		var tail_cols = thisLI.parent().parent().nextAll();
+		var thisCol = $(this).parents('.column');
+		// in first column all li's except the break
+		var tail_lis = thisCol.find('.mainList').children().first().nextAll();
+		var tail_uls = thisCol.find('.mainList').nextAll();
+		var tail_cols = thisCol.nextAll();
 
 		// current section DIV
-		var section = thisLI.parent().parent().parent();
+		var section = thisCol.parent();
 		// append rest of ul last one in prevous section
 		section.prev().find('ul').last().append(tail_lis);
 		section.prev().find('.column').last().append(tail_uls);
@@ -2024,21 +2048,77 @@ $(document).ready(function() {
 	function columnMergeLink(e) {
 		e.preventDefault();
 		deleteBreak($(this).attr('href').substring(1));
-		// this is a break li, so it won't be needed
-		var thisLI = $(this).parents('li');
-		var tail_lis = thisLI.nextAll();
-		var tail_uls = thisLI.parent().nextAll();
+		var thisCol = $(this).parents('.column');
+		// all li's expect break
+		var tail_lis = thisCol.find('.mainList').children().first().nextAll();
+		var tail_uls = thisCol.find('.mainList').nextAll();
 
-		// current section DIV
-		var column = thisLI.parent().parent();
 		// append rest of ul last one in prevous column;
-		column.prev().find('ul').last().append(tail_lis);
-		column.prev().find('.column').last().append(tail_uls);
+		thisCol.prev().find('ul').last().append(tail_lis);
+		thisCol.prev().append(tail_uls);
 		// nothing should be left in current section. kill it
-		column.remove();
+		thisCol.remove();
 		fixupColAttrs();
 		fixupHeights();
 	};
+
+	$('.columnopen').click(columnOpenLink);
+	function columnOpenLink(e) {
+	    var itemid = $(this).closest('.editsection').find('.column-merge-link,.section-merge-link').attr('href').substring(1);
+	    $('.currentlyediting').removeClass('currentlyediting');
+	    var col = $(this).closest('.column');
+	    col.addClass('currentlyediting');
+	    $('#columndouble').prop('checked', col.hasClass('double'));
+	    $('#columnsplit').prop('checked', col.hasClass('split'));
+	    $('#columnitem').val(itemid);
+	    $('#columntrans').prop('selected', col.hasClass('coltrans'));
+	    $('#columngray').prop('selected', col.hasClass('colgray'));
+	    $('#columnred').prop('selected', col.hasClass('colred'));
+	    $('#columnblue').prop('selected', col.hasClass('colblue'));
+	    $('#columngreen').prop('selected', col.hasClass('colgreen'));
+	    $('#columnyellow').prop('selected', col.hasClass('colyellow'));
+	    $('#column-dialog').dialog('open');
+	    return false;
+	}
+
+	$('#column-cancel').click(function() {
+		$('#column-dialog').dialog('close');
+		return false;
+	    });
+
+	$('#column-submit').click(function(){
+		var itemid = $('#columnitem').val();
+		var width = $('#columndouble').prop('checked') ? 2 : 1;
+		var split = $('#columnsplit').prop('checked') ? 2 : 1;
+		var col =  $('.currentlyediting');
+		var color_index = $('#columnbackground')[0].selectedIndex; 
+		var color = '';
+		switch (color_index) {
+		case 0: color = ''; break;
+		case 1: color = 'trans'; break;
+		case 2: color = 'gray'; break;
+		case 3: color = 'red'; break;
+		case 4: color = 'blue'; break;
+		case 5: color = 'green'; break;
+		case 6: color = 'yellow'; break;
+		}
+		setColumnProperties(itemid, width, split, color);
+		if (width === 2)
+		    col.addClass('double');		    
+		else
+		    col.removeClass('double');
+		if (split === 2)
+		    col.addClass('split');
+		else
+		    col.removeClass('split');
+		col.removeClass('coltrans colgray colred colblue colgreen colyellow');
+		if (color !== '')
+		    col.addClass('col' + color);
+		fixupColAttrs();
+		fixupHeights();
+		$('#column-dialog').dialog('close');
+		return false;
+	    });
 
 	// don't do this twice. if portal is loaded portal will do it
         if(typeof portal === 'undefined')
@@ -2151,6 +2231,7 @@ $(document).ready(function() {
 	$("#dropdown").click(buttonOpenDropdown);
 	$("#dropdownc").click(buttonOpenDropdownc);
 	$(".add-link").click(buttonOpenDropdowna);
+	$(".add-bottom").click(buttonOpenDropdownb);
 
 	$("#moreDiv").on('keyup',function(evt) {
 		if (evt.which == 27) {
@@ -2521,6 +2602,14 @@ function buttonOpenDropdowna() {
     openDropdown($("#addContentDiv"), $("#dropdownc"));
 }
 
+function buttonOpenDropdownb() {
+    oldloc = $(this);
+    addAboveItem = '-' + $(this).closest('.column').find('ul').children().last().find("span.itemid").text();
+    $(".addbreak").show();
+    openDropdown($("#addContentDiv"), $("#dropdownc"));
+    return false;
+}
+
 function openDropdown(dropDiv, button) {
     closeDropdowns();
     hideMultimedia();
@@ -2761,7 +2850,20 @@ function deleteBreak(itemId, type) {
 	    }});
 }
 
-
+function setColumnProperties(itemId, width, split, color) {
+    var errors = '';
+    var url = location.protocol + '//' + location.host + 
+	'/lessonbuilder-tool/ajax';
+    var grouped;
+    var csrf = $("#edit-item-dialog input[name='csrf8']").attr('value');
+    $.ajax({type: "POST",
+	    async: false,
+	    url: url,
+		data: {op: 'setcolumnproperties', itemid: itemId, width: width, split: split, csrf: csrf, color: color},
+	    success: function(data){
+		ok = data;
+	    }});
+}
 
 var mimeMime = "";
 
@@ -2802,6 +2904,7 @@ function mm_test_reset() {
    $('.mm-test-reset').hide();
    $('#mm-test-prototype').hide();
    $('#mm-test-oembed-results .oembedall-container').remove();
+   $('#mm-file-replace-group').hide();
 }
 
 resizeFrame = function (updown) {
@@ -2849,7 +2952,7 @@ function printView(url) {
 // fix up cols1, cols2, etc, after splitting a section
 function fixupColAttrs() {
     $(".section").each(function(index) {
-	    var count = $(this).find(".column").size();
+	    var count = $(this).find(".column").size() + $(this).find(".double").size();
 	    $(this).find(".column").removeClass('cols1 cols2 cols3 cols4 cols5 cols6 cols7 cols8 cols9 lastcol');
 	    $(this).find(".column").last().addClass('lastcol');
 	    $(this).find(".column").addClass('cols' + count);

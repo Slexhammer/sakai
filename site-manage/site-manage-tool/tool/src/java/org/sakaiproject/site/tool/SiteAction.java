@@ -46,6 +46,7 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -76,6 +77,7 @@ import org.sakaiproject.authz.api.Member;
 import org.sakaiproject.authz.api.PermissionsHelper;
 import org.sakaiproject.authz.api.Role;
 import org.sakaiproject.authz.api.RoleAlreadyDefinedException;
+import org.sakaiproject.authz.api.RoleProvider;
 import org.sakaiproject.authz.api.SecurityAdvisor;
 import org.sakaiproject.authz.api.SecurityAdvisor.SecurityAdvice;
 import org.sakaiproject.authz.api.AuthzGroupService;
@@ -413,7 +415,8 @@ public class SiteAction extends PagedResourceActionII {
 	private static final String STATE_NEW_SITE_STATUS_ISPUBLISHED = "newSiteStatusIsPublished";
 	private static final String STATE_NEW_SITE_STATUS_TITLE = "newSiteStatusTitle";
 	private static final String STATE_NEW_SITE_STATUS_ID = "newSiteStatusID";
-	
+	private static final String STATE_DUPE_SITE_STATUS_ID = "dupeSiteStatusID";
+	private static final String STATE_DUPE_SITE_URL = "dupeSiteUrl";
 
 	// %%% get rid of the IdAndText tool lists and just use ToolConfiguration or
 	// ToolRegistration lists
@@ -734,8 +737,8 @@ public class SiteAction extends PagedResourceActionII {
 	private final static String WEB_CONTENT_TOOL_SOURCE_CONFIG_VALUE = "http://";
 
 	/** the news tool **/
-	private final static String NEWS_TOOL_ID = "sakai.news";
-	private final static String NEWS_TOOL_CHANNEL_CONFIG = "channel-url";
+	private final static String NEWS_TOOL_ID = "sakai.simple.rss";
+	private final static String NEWS_TOOL_CHANNEL_CONFIG = "javax.portlet-feed_url";
 	private final static String NEWS_TOOL_CHANNEL_CONFIG_VALUE = "http://sakaiproject.org/feed";
 	
    	private final static String LESSONS_TOOL_ID = "sakai.lessonbuildertool";
@@ -1287,6 +1290,11 @@ public class SiteAction extends PagedResourceActionII {
 		String template = null;
 		context.put("action", CONTEXT_ACTION);
 
+		ToolSession session = SessionManager.getCurrentToolSession();
+		if(session.getAttribute(ATTR_TOP_REFRESH) != null && session.getAttribute(ATTR_TOP_REFRESH).equals(Boolean.TRUE)) {
+			session.removeAttribute(ATTR_TOP_REFRESH);
+			return "sitesetup/chef_refresh";
+		}
 		// updatePortlet(state, portlet, data);
 		if (state.getAttribute(STATE_INITIALIZED) == null) {
 			init(portlet, data, state);
@@ -1666,8 +1674,24 @@ public class SiteAction extends PagedResourceActionII {
 			
 			context.put("allowAddSite",allowAddSite);
 
-			//SAK-23468 put create variables into context
-			addSiteCreationValuesIntoContext(context,state);
+			//Add flash notification when new site is created
+			if(state.getAttribute(STATE_NEW_SITE_STATUS_ID) != null){
+				String  flashNotifMsg = "<a title=\"" + state.getAttribute(STATE_NEW_SITE_STATUS_TITLE) + "\"href=\"/portal/site/"+
+				state.getAttribute(STATE_NEW_SITE_STATUS_ID) + "\" target=\"_top\">"+
+				state.getAttribute(STATE_NEW_SITE_STATUS_TITLE)+"</a>" +" "+
+				rb.getString("sitdup.hasbeedup");
+				addFlashNotif(state,flashNotifMsg);
+				StringBuilder sbFlashNotifAction =  new StringBuilder();
+				if (state.getAttribute(STATE_NEW_SITE_STATUS_ISPUBLISHED).equals(Boolean.FALSE)) {
+					sbFlashNotifAction = new StringBuilder();
+					sbFlashNotifAction.append("<div id=\"newSiteAlertActions\" class=\"newSiteAlertActions\">");
+					sbFlashNotifAction.append("<a href=\"#\" id=\"newSiteAlertPublish\" class=\""+state.getAttribute(STATE_NEW_SITE_STATUS_ID)+"\""+">" + rb.getString("sitetype.publishSite") + "</a>");
+					sbFlashNotifAction.append("<span id=\"newSiteAlertPublishMess\" class=\"messageSuccess\" style=\"display:none\">" + rb.getString("list.publi") + "</span>");
+					sbFlashNotifAction.append("</div>");
+					addFlashNotif(state, sbFlashNotifAction.toString());
+				}
+				clearNewSiteStateParameters(state);
+			}
 
 			
 			return (String) getContext(data).get("template") + TEMPLATE[0];
@@ -1683,7 +1707,7 @@ public class SiteAction extends PagedResourceActionII {
 				types.addAll(mTypes);
 			}
 			context.put("siteTypes", types);
-			context.put("templateControls", ServerConfigurationService.getString("templateControls", ""));
+			context.put("templateControls", ServerConfigurationService.getString("site.setup.templateControls",ServerConfigurationService.getString("templateControls", "")));
 			// put selected/default site type into context
 			String typeSelected = (String) state.getAttribute(STATE_TYPE_SELECTED);
 			context.put("typeSelected", state.getAttribute(STATE_TYPE_SELECTED) != null?state.getAttribute(STATE_TYPE_SELECTED):types.get(0));
@@ -1894,7 +1918,7 @@ public class SiteAction extends PagedResourceActionII {
 			context.put("published", Boolean.valueOf(siteInfo.published));
 			context.put("joinable", Boolean.valueOf(siteInfo.joinable));
 			context.put("joinerRole", siteInfo.joinerRole);
-            addAccess(context, siteInfo.allow_anon, siteInfo.allow_auth);
+			context.put("additionalAccess", getAdditionRoles(siteInfo));
 
 			// bjones86 - SAK-24423 - add joinable site settings to context
 			JoinableSiteSettings.addJoinableSiteSettingsToNewSiteConfirmContext( context, siteInfo );
@@ -1958,6 +1982,12 @@ public class SiteAction extends PagedResourceActionII {
 						}
 					}
 				}
+				if (state.getAttribute(SITE_DUPLICATED) != null) {
+						String flashNotifMsg = "<a title=\""+state.getAttribute(SITE_DUPLICATED_NAME) +"\" href=\""+state.getAttribute(STATE_DUPE_SITE_URL)+"\" target=\"_top\">"+state.getAttribute(SITE_DUPLICATED_NAME)+"</a>";
+						addFlashNotif(state, rb.getString("sitdup.dupsit") + " " + flashNotifMsg + " " + rb.getString("sitdup.hasbeedup"));
+					}
+				state.removeAttribute(SITE_DUPLICATED);
+				state.removeAttribute(SITE_DUPLICATED_NAME);
 				
 				context.put("siteFriendlyUrls", getSiteUrlsForSite(site));
 				context.put("siteDefaultUrl", getDefaultSiteUrl(siteId));
@@ -2000,9 +2030,7 @@ public class SiteAction extends PagedResourceActionII {
 				context.put("allowUpdateSiteMembership", Boolean
 						.valueOf(allowUpdateSiteMembership));
 
- 				AdditionalAccess access = getAdditionalAccess(site);
- 				
- 				addAccess(context, access.anon, access.auth);
+				context.put("additionalAccess", getAdditionRoles(site));
 
 				Menu b = new MenuImpl(portlet, data, (String) state
 						.getAttribute(STATE_ACTION));
@@ -2732,9 +2760,9 @@ public class SiteAction extends PagedResourceActionII {
 					context.put("disableJoinable", Boolean.TRUE);
 				}
 				
-				AdditionalAccess access = getAdditionalAccess(site);
+				Map<String, AdditionalRole> access = getAdditionalAccess(site);
 				
-				addAccess(context, access.anon, access.auth);
+				addAccess(context, access);
 
 				// bjones86 - SAK-23257
 				context.put("roles", getJoinerRoles(site.getReference(), state, site.getType()));
@@ -2792,10 +2820,14 @@ public class SiteAction extends PagedResourceActionII {
 					} catch (GroupNotDefinedException ee) {
 					}
 				}
-				
-				addAccess(context, siteInfo.allow_anon, siteInfo.allow_auth);
 
-				// new site, go to confirmation page
+				Map<String, AdditionalRole> additionalRoles = loadAdditionalRoles();
+				for (AdditionalRole role: additionalRoles.values()) {
+					if (siteInfo.additionalRoles.contains(role.getId())) {
+						role.granted = true;
+					}
+				}
+				addAccess(context,additionalRoles);
 				context.put("continue", "10");
 
 				siteType = (String) state.getAttribute(STATE_SITE_TYPE);
@@ -3345,6 +3377,7 @@ public class SiteAction extends PagedResourceActionII {
 			 */
 			
 			context.put("basedOnTemplate",  state.getAttribute(STATE_TEMPLATE_SITE) != null ? Boolean.TRUE:Boolean.FALSE);
+			context.put("publishTemplate", (Boolean) state.getAttribute(STATE_TEMPLATE_PUBLISH));
 			
 			// bjones86 - SAK-21706
 			context.put( CONTEXT_SKIP_COURSE_SECTION_SELECTION, 
@@ -3427,6 +3460,7 @@ public class SiteAction extends PagedResourceActionII {
 					"roster.available.weeks.before.term.start", "0"));
 			
 			context.put("basedOnTemplate",  state.getAttribute(STATE_TEMPLATE_SITE) != null ? Boolean.TRUE:Boolean.FALSE);
+			context.put("publishTemplate", (Boolean) state.getAttribute(STATE_TEMPLATE_PUBLISH));
 			
 			context.put("requireAuthorizer", ServerConfigurationService.getString(SAK_PROP_REQUIRE_AUTHORIZER, "true").equals("true")?Boolean.TRUE:Boolean.FALSE);
 			
@@ -3727,15 +3761,99 @@ public class SiteAction extends PagedResourceActionII {
 		// should never be reached
 		return (String) getContext(data).get("template") + TEMPLATE[0];
 	}
-
-	private void addAccess(Context context, boolean anon, boolean auth) {
-		if (anon) {
-			context.put("access", "anonymous");
-		} else if (auth) {
-			context.put("access", "authenticated");
-		} else {
-			context.put("access", "members");
+	
+	private void addAccess(Context context, Map<String, AdditionalRole> access) {
+		boolean disableAdditional = access.size() == 0;
+		context.put("disableAdditional", disableAdditional);
+		if (!disableAdditional) {
+			List<AdditionalRoleGroup> roleSets = sortAdditionalRoles(access);
+			context.put("additionalRoleGroups", roleSets);
 		}
+	}
+	
+	private List<AdditionalRoleGroup> sortAdditionalRoles(Map<String, AdditionalRole> access) {
+		HashMap<String, AdditionalRoleGroup> roleMap = new HashMap<String, AdditionalRoleGroup>();
+		for (String roleId : access.keySet()) {
+			//take key (role group label) from role prefix (until last dot). 
+			//.aaa.eee.iii.roleid => key=.aaa.eee.iii 
+			int index = roleId.lastIndexOf(".");
+			String key = (index >= 0) ? roleId.substring(0, index) : "";
+			AdditionalRoleGroup arg = roleMap.get(key);
+			if(arg == null) {
+				arg = new AdditionalRoleGroup(authzGroupService.getRoleGroupName(key));
+				roleMap.put(key, arg);
+			}
+			
+			List <AdditionalRole> roles = arg.getRoles();
+			roles.add(access.get(roleId));
+		}
+		List<AdditionalRoleGroup> roleSets = new ArrayList<AdditionalRoleGroup>();
+		roleSets.addAll(roleMap.values());
+		//order categories by name
+		Collections.sort(roleSets);
+		//order roles in categories by name
+		for (AdditionalRoleGroup roleGroup: roleSets) {
+			Collections.sort(roleGroup.getRoles());
+		}
+		return roleSets;
+	}
+
+	private List<String> getAdditionRoles(AuthzGroup realm) {
+		List<String> roles = new ArrayList<String>();
+		for (Role role : (Set<Role>)realm.getRoles()) {
+			if (!authzGroupService.isRoleAssignable(role.getId())) {
+				roles.add(authzGroupService.getRoleName(role.getId()));
+			}
+		}
+		// Make sure it's always in the same order.
+		Collections.sort(roles);
+		return roles;
+	}
+	
+	private List<String> getAdditionRoles(SiteInfo siteInfo) {
+		List<String> roles = new ArrayList<String>();
+		for (String roleId : siteInfo.additionalRoles) {
+			roles.add(authzGroupService.getRoleName(roleId));
+		}
+		// Make sure it's always in the same order.
+		Collections.sort(roles);
+		return roles;
+	}
+	
+	private Map<String, AdditionalRole> getAdditionalAccess(AuthzGroup realm) {
+		// Check for .auth/.anon
+		Map<String, AdditionalRole> additionalRoles = loadAdditionalRoles(); 
+		for (Role role : (Set<Role>)realm.getRoles()) {
+			if (!authzGroupService.isRoleAssignable(role.getId())) {
+				AdditionalRole additionalRole = additionalRoles.get(role.getId());
+				if (additionalRole == null) {
+					additionalRole = new AdditionalRole();
+					additionalRole.id = role.getId();
+					additionalRole.name = authzGroupService.getRoleName(role.getId());
+					additionalRole.editable = false;
+					additionalRoles.put(additionalRole.id, additionalRole);
+				}
+				additionalRole.granted = true;
+			}
+		}
+		return additionalRoles;
+	}
+	
+	/**
+	 * Load the possible additional roles for this site.
+	 * This should really all be behind an API.
+	 * @return
+	 */
+	protected Map<String, AdditionalRole> loadAdditionalRoles() {
+		Map<String, AdditionalRole> additionalRoles = new HashMap<String, AdditionalRole>();
+		for (String roleId : authzGroupService.getAdditionalRoles()) {			
+				AdditionalRole role = new AdditionalRole();
+				role.id = roleId;
+				role.name = authzGroupService.getRoleName(role.id);
+				role.editable = true;
+				additionalRoles.put(role.id, role);
+			}
+		return additionalRoles;
 	}
 
 	private void toolSelectionIntoContext(Context context, SessionState state, String siteType, String siteId, String overridePageOrderSiteTypes) {
@@ -3871,19 +3989,6 @@ public class SiteAction extends PagedResourceActionII {
 				state.setAttribute(STATE_TOOL_REGISTRATION_SELECTED_LIST, idSelected);
 			}
 		}
-	}
-
-	private AdditionalAccess getAdditionalAccess(AuthzGroup realm) {
-		// Check for .auth/.anon
-		AdditionalAccess access = new AdditionalAccess();
-		for (Role role : (Set<Role>)realm.getRoles()) {
-			if (".auth".equals(role.getId())) {
-				access.auth = true;
-			} else if (".anon".equals(role.getId())) {
-				access.anon = true;
-			}
-		}
-		return access;
 	}
 
 	private String getSelectionString(List selections, int numSelections) {
@@ -4098,20 +4203,6 @@ public class SiteAction extends PagedResourceActionII {
 		context.put(STATE_MULTIPLE_TOOL_CONFIGURATION, state.getAttribute(STATE_MULTIPLE_TOOL_CONFIGURATION));
 		context.put(STATE_MULTIPLE_TOOL_INSTANCE_SELECTED, state.getAttribute(STATE_MULTIPLE_TOOL_INSTANCE_SELECTED));
 	}
-
-
-	// SAK-23468 If this is after an add site, the 
-	private void addSiteCreationValuesIntoContext(Context context, SessionState state) {
-		String siteID = (String) state.getAttribute(STATE_NEW_SITE_STATUS_ID);
-		if (siteID != null) {  // make sure this message is only seen immediately after a new site is created.
-			context.put(STATE_NEW_SITE_STATUS_ISPUBLISHED, state.getAttribute(STATE_NEW_SITE_STATUS_ISPUBLISHED));
-			String siteTitle = (String) state.getAttribute(STATE_NEW_SITE_STATUS_TITLE);
-			context.put(STATE_NEW_SITE_STATUS_TITLE, siteTitle);
-			context.put(STATE_NEW_SITE_STATUS_ID, siteID);
-			// remove the values from state so the values are gone on the next call to chef_site-list
-			//clearNewSiteStateParameters(state);
-		}
-	}	
 	
 	
 	// SAK-23468 
@@ -4128,7 +4219,7 @@ public class SiteAction extends PagedResourceActionII {
 		state.removeAttribute(STATE_NEW_SITE_STATUS_ISPUBLISHED);
 		state.removeAttribute(STATE_NEW_SITE_STATUS_ID);
 		state.removeAttribute(STATE_NEW_SITE_STATUS_TITLE);
-
+		state.removeAttribute(STATE_DUPE_SITE_URL);
 	}
 	
 	/**
@@ -4141,6 +4232,9 @@ public class SiteAction extends PagedResourceActionII {
 		// 1. the skin list
 		// For course site, display skin list based on "disable.course.site.skin.selection" value set with sakai.properties file. The setting defaults to be false.
 		boolean disableCourseSkinChoice = ServerConfigurationService.getString("disable.course.site.skin.selection", "false").equals("true");
+		//Do we allow them to use a specific icon for the site. Related to SAK-29458 for Sakai 11
+		//Default to true for now. Requires the portal.siteicon.allow value in the sakai.properties file.
+		context.put("allowSiteIcon",ServerConfigurationService.getBoolean("portal.siteicon.allow",true));
 		// For non-course site, display skin list based on "disable.noncourse.site.skin.selection" value set with sakai.properties file. The setting defaults to be true.
 		boolean disableNonCourseSkinChoice = ServerConfigurationService.getString("disable.noncourse.site.skin.selection", "true").equals("true");
 		if ((isCourseSite && !disableCourseSkinChoice) || (!isCourseSite && !disableNonCourseSkinChoice))
@@ -6308,25 +6402,29 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 		List ltiSelectedTools = selectedLTITools(site);
 		List ltiTools = new ArrayList();
 		List<Map<String, Object>> allTools;
+		String siteId = "";
 		if ( site == null )
 			allTools = m_ltiService.getTools(null,null,0,0);
 		else
-			allTools = m_ltiService.getToolsDao(null,null,0,0,site.getId());
-      
+		{
+			siteId = Objects.toString(site.getId(), "");
+			allTools = m_ltiService.getToolsDao(null,null,0,0,siteId);
+		}
 		if (allTools != null && !allTools.isEmpty()) {
 			for (Map<String, Object> tool : allTools) {
 				Set keySet = tool.keySet();
 				String toolIdString = ObjectUtils.toString(tool.get(m_ltiService.LTI_ID));
 				boolean toolStealthed = "1".equals(ObjectUtils.toString(tool.get(m_ltiService.LTI_VISIBLE)));
 				boolean ltiToolSelected = ltiSelectedTools.contains(toolIdString); 
-
+				String siteRestriction = Objects.toString(tool.get(LTIService.LTI_SITE_ID), "");
+				boolean allowedForSite = siteRestriction.isEmpty() || siteRestriction.equals(siteId);
 				try
 				{
 					// in Oracle, the lti tool id is returned as BigDecimal, which cannot be casted into Integer directly
 					Integer ltiId = Integer.valueOf(toolIdString);
 					if (ltiId != null) {
 						String ltiToolId = ltiId.toString(); 
-						if (ltiToolId != null && (!toolStealthed || ltiToolSelected) ) {
+						if (ltiToolId != null && ((!toolStealthed && allowedForSite) || ltiToolSelected) ) {
 							String relativeWebPath = null;
 							MyTool newTool = new MyTool();
 							newTool.title = tool.get("title").toString();
@@ -6628,7 +6726,9 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 
 			SiteInfo siteInfo = (SiteInfo) state.getAttribute(STATE_SITE_INFO);
 			if (siteInfo != null) {
-				addAuthAnonRoles(state, site, siteInfo.allow_auth, siteInfo.allow_anon);
+				for (String role : siteInfo.additionalRoles) {
+					updateAdditionalRole(state, site, role, true);
+				}
 			}
 
 			Site templateSite = (Site) state.getAttribute(STATE_TEMPLATE_SITE);
@@ -8539,6 +8639,10 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 	 * 
 	 */
 	public void doUpdate_participant(RunData data) {
+		if (!"POST".equals(data.getRequest().getMethod())) {
+			M_log.warn("Ignoring non-POST request to update site access.");
+			return;
+		}
 		SessionState state = ((JetspeedRunData) data)
 				.getPortletSessionState(((JetspeedRunData) data).getJs_peid());
 		ParameterParser params = data.getParameters();
@@ -8844,6 +8948,10 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 	 * 
 	 */
 	public void doUpdate_site_access(RunData data) {
+		if (!"POST".equals(data.getRequest().getMethod())) {
+			M_log.warn("Ignoring non-POST request to update site access.");
+			return;
+		}
 		SessionState state = ((JetspeedRunData) data)
 				.getPortletSessionState(((JetspeedRunData) data).getJs_peid());
 		Site sEdit = getStateSite(state);
@@ -8855,8 +8963,6 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 		readInputAndUpdateStateVariable(state, params, "include", STATE_SITE_ACCESS_INCLUDE, true);
 		readInputAndUpdateStateVariable(state, params, "joinable", STATE_JOINABLE, true);
 		readInputAndUpdateStateVariable(state, params, "joinerRole", STATE_JOINERROLE, false);
-
-		String access = params.getString("access");
 		
 		// bjones86 - SAK-24423 - get all joinable site settings from the form input
 		JoinableSiteSettings.getAllFormInputs( state, params );
@@ -8887,7 +8993,17 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 			}
 
 			doUpdate_site_access_joinable(data, state, params, sEdit);
-			addAuthAnonRoles(state, sEdit, "authenticated".equals(access), "anonymous".equals(access));
+			
+			Map<String, AdditionalRole> additionalRoles = getAdditionalAccess(sEdit);
+			for(String role : additionalRoles.keySet()) {
+				boolean userChoice = params.getBoolean("role"+role);
+				AdditionalRole additionalRole = additionalRoles.get(role);
+				if (additionalRole.editable) {
+					if (additionalRole.granted != userChoice) {
+						updateAdditionalRole(state, sEdit, role, userChoice);
+					}
+				}
+			}
 
 			if (state.getAttribute(STATE_MESSAGE) == null) {
 				commitSite(sEdit);
@@ -8944,10 +9060,14 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 					siteInfo.joinable = false;
 					siteInfo.joinerRole = null;
 				}
-				
-				if (access != null) {
-					siteInfo.allow_anon = "anonymous".equals(access);
-					siteInfo.allow_auth = "authenticated".equals(access);
+				// Stash the list of roles to add to the site.
+				siteInfo.additionalRoles = new HashSet<String>();
+				Map<String, AdditionalRole> additionalRoles = loadAdditionalRoles();
+				for(String role : additionalRoles.keySet()) {
+					boolean userChoice = params.getBoolean("role"+role);
+					if (userChoice) {
+						siteInfo.additionalRoles.add(role);
+					}
 				}
 
 				state.setAttribute(STATE_SITE_INFO, siteInfo);
@@ -8966,6 +9086,35 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 			
 
 	} // doUpdate_site_access
+	
+	private void updateAdditionalRole(SessionState state, Site site, String roleId, boolean add) {
+		try {
+			if (add) {
+				AuthzGroup templateGroup = authzGroupService.getAuthzGroup("!site.roles");
+				Role role = templateGroup.getRole(roleId);
+				if (role == null) {
+					role = templateGroup.getRole(".default");
+				}
+				if (site.getRole(roleId) == null) {
+					try {
+						site.addRole(roleId, role);
+					} catch (RoleAlreadyDefinedException e) {
+						addAlert(state, "java.authroleexists");
+					}
+				} else {
+					M_log.warn("Attempting to add a role ("+ roleId+ ") that already exists in site: "+ site.getId());
+				}
+			} else {
+				if (site.getRole(roleId) != null) {
+					site.removeRole(roleId);
+				} else {
+					M_log.warn("Attempting to remove a role ("+ roleId+ ") that isn't defined in site: "+ site.getId());
+				}
+			}
+		} catch (GroupNotDefinedException gnde) {
+			addAlert(state, rb.getString("java.rolenotfound"));
+		}
+	}
 
 	private void addAuthAnonRoles(SessionState state, Site site, boolean auth, boolean anon) {
 		try {
@@ -9510,7 +9659,8 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 								
 								// save again
 								SiteService.save(site);
-								
+								state.setAttribute(STATE_DUPE_SITE_STATUS_ID, site.getId());
+								state.setAttribute(STATE_DUPE_SITE_URL, site.getUrl());
 								String realm = SiteService.siteReference(site.getId());
 								try 
 								{
@@ -9567,10 +9717,6 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 				}
 
 				if (state.getAttribute(STATE_MESSAGE) == null) {
-					// site duplication confirmed
-					state.removeAttribute(SITE_DUPLICATED);
-					state.removeAttribute(SITE_DUPLICATED_NAME);
-
 					// return to the list view
 					state.setAttribute(STATE_TEMPLATE_INDEX, "12");
 				}
@@ -10659,7 +10805,7 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 			AuthzGroup realm = authzGroupService.getAuthzGroup(realmId);
 			// Filter the roles so we only display user roles
 			for (Role role: (Set<Role>)realm.getRoles()) {
-				if (isUserRole(role)) {
+				if (authzGroupService.isRoleAssignable(role.getId())) {
 					roles.add(role);
 				}
 			}
@@ -11681,6 +11827,10 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 					site = addToolToSiteIfMissing(site, missingToolId);
 					commitSite(site);
 				}
+				
+				//now update toolIds to match importTools so that the content is imported
+				toolIds.clear();
+				toolIds.addAll(importTools.keySet());
 			}
 			
 			Map transversalMap = new HashMap();
@@ -13044,9 +13194,7 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 
 		public boolean joinable = false;
 		
-		public boolean allow_auth = false;
-		
-		public boolean allow_anon = false;
+		public Set<String> additionalRoles = Collections.EMPTY_SET;
 
 		public String joinerRole = NULL_STRING;
 
@@ -13188,15 +13336,61 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 		}		
 
 	} // SiteInfo
-	
-	/**
-	 * Allow the additional access details to be passed and returned form 
-	 * methods easily.
-	 * @author buckett
-	 */
-	public class AdditionalAccess {
-		boolean auth = false;
-		boolean anon = false;
+
+	public class AdditionalRoleGroup implements Comparable<AdditionalRoleGroup>{
+		public String name;
+		public List<AdditionalRole> roles;
+		
+		public AdditionalRoleGroup(String name) {
+			this.name = name;
+			this.roles = new ArrayList<AdditionalRole>();
+		}
+		public String getName() {
+			return name;
+		}
+		public List<AdditionalRole> getRoles() {
+			return roles;
+		}
+		
+		public int getSize() {
+			return roles.size();
+		}
+		
+		@Override
+		public int compareTo(AdditionalRoleGroup arg0) {
+			if(arg0 == null) return 1;
+			if(this.name == null && arg0.name == null) return 0;
+			if(this.name == null || arg0.name == null) return (this.name == null) ? -1 : 1;
+			return this.name.compareTo(arg0.name);
+		}
+	}
+
+	public class AdditionalRole implements Comparable<AdditionalRole>{
+		public String id;
+		public String name;
+		public boolean editable;
+		public boolean granted;
+		
+		public String getId() {
+			return id;
+		}
+		public String getName() {
+			return name;
+		}
+		public boolean isEditable() {
+			return editable;
+		}
+		public boolean isGranted() {
+			return granted;
+		}
+		
+		@Override
+		public int compareTo(AdditionalRole arg0) {
+			if(arg0 == null) return 1;
+			if(this.name == null && arg0.name == null) return 0;
+			if(this.name == null || arg0.name == null) return (this.name == null) ? -1 : 1;
+			return this.name.compareTo(arg0.name);
+		}
 	}
 
 	// customized type tool related
@@ -13310,7 +13504,21 @@ private Map<String,List> getTools(SessionState state, String type, Site site) {
 	public void doAdd_site_option(RunData data) {
 		String option = data.getParameters().getString("option");
 		if ("finish".equals(option)) {
-			doFinish(data);
+			SessionState state = ((JetspeedRunData) data).getPortletSessionState(((JetspeedRunData) data).getJs_peid());
+			Site site = getStateSite(state);
+			if (site == null)
+			{
+				doFinish(data);
+			}
+			else  // There is a site in the state already, likely from a previous request that is still processing
+			{
+				// Abort this request to prevent adding multiple copies of tools to the same site.
+				String msg = "Detected request to create a site while site %s already exists in current session state. Aborting request.";
+				if (M_log.isDebugEnabled())
+				{
+					M_log.debug(String.format(msg, StringUtils.trimToEmpty(site.getId())));
+				}
+			}
 		} else if ("cancel".equals(option)) {
 			doCancel_create(data);
 		} else if ("back".equals(option)) {

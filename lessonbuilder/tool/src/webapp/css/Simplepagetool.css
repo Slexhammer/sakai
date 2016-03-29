@@ -20,6 +20,28 @@
    background-image: url("simplepage-theme/images/ui-icons_222222_256x240.png") !important;
 }
 
+.ui-dialog label {
+   padding-left: 0.5em;
+   font-weight: normal;
+}
+
+/* end override */
+
+/* override weird setting in tool.css */
+
+/* was -20 left, position absolute */
+.lessonsDialog .checkbox  input[type="checkbox"],
+.lessonsDialog .radio  input[type="radio"] {
+   position:static;
+   margin-left:0px;
+}
+
+/* was 20 px left margin for label */
+.lessonsDialog .radio label,
+.lessonsDialog .checkbox label {
+  padding-left: 4px;
+}
+
 /* end override */
 
 .title-tools h2{
@@ -82,9 +104,6 @@
 }
 .neoPortletTitleWrap {
 	padding-bottom: 4px;
-}
-.portletTitle .title, .portletTitle .action {
-	padding-bottom: 0px !important;
 }
 .breadcrumbs a[title="Reset"] {
 
@@ -218,7 +237,7 @@ a.edit-link:link, a.edit-link:visited, a.section-merge-link:link, a.section-merg
 	padding: 0.25em 0.8em !important
 }
 .itemclass {
-	margin-top: 1.0em;
+	margin-top: 2.0em;
 	margin-bottom: 1.0em;
 }
 .rowdescription {
@@ -244,6 +263,11 @@ a.edit-link:link, a.edit-link:visited, a.section-merge-link:link, a.section-merg
 	margin-bottom: 0.5em;
 }
 
+.newItem {
+   border-left: 5px solid black !important;
+   margin-left: -5px;
+}
+
 .mainList {
 }
 
@@ -265,41 +289,129 @@ a.edit-link:link, a.edit-link:visited, a.section-merge-link:link, a.section-merg
 
 /* only up to 4 cols has been tuned */
 .cols9 {
-    width: calc(11.1% - 36px) !important;
+    width: calc(100$ / 9  - 17px) !important;
     margin-right: 2px !important;
+}
+[class~="cols9"][class~="double"] {
+    width: calc(200% / 9 - 17px) !important;
 }
 .cols8 {
-    width: calc(12.5% - 36px) !important;
+    width: calc(100% / 8 - 17px) !important;
     margin-right: 2px !important;
+}
+[class~="cols8"][class~="double"] {
+    width: calc(200% / 8 - 17px) !important;
 }
 .cols7 {
-    width: calc(14.2% - 36px) !important;
+    width: calc(100% / 7 - 17px) !important;
     margin-right: 2px !important;
+}
+[class~="cols7"][class~="double"] {
+    width: calc(200% / 7 - 17px) !important;
 }
 .cols6 {
-    width: calc(16.6% - 36px) !important;
+    width: calc(100% / 6 - 17px) !important;
     margin-right: 2px !important;
+}
+[class~="cols6"][class~="double"] {
+    width: calc(200% / 6 - 17px) !important;
 }
 .cols5 {
-    width: calc(20% - 36px) !important;
+    width: calc(100% / 5 - 17px) !important;
     margin-right: 2px !important;
+}
+[class~="cols5"][class~="double"] {
+    width: calc(200% / 5 - 17px) !important;
 }
 .cols4 {
-    width: calc(25% - 36px) !important;
+    width: calc(100% / 4 - 17px) !important;
     margin-right: 2px !important;
+}
+[class~="cols4"][class~="double"] {
+    width: calc(200% / 4 - 17px) !important;
 }
 .cols3 {
-    width: calc(33% - 34px) !important;
+    width: calc(100% / 3 - 17px) !important;
     margin-right: 2px !important;
+}
+[class~="cols3"][class~="double"] {
+    width: calc(200% / 3 - 17px) !important;
 }
 .cols2 {
-    width: calc(50% - 39px) !important;
+    width: calc(100% / 2 - 17px) !important;
     margin-right: 2px !important;
 }
+[class~="cols2"][class~="double"] {
+    width: calc(200% / 2 - 17px) !important;
+}
 .cols1 {
-    width: calc(100% - 46px) !important;
+    width: calc(100% - 17px) !important;
+}
+/* this is to prevent the last column from going to a new
+   line if the calculation is a bit off. */
+.lastcol {
+    margin-right:-10px !important;
 }
 
+/* with multiple columns don't want as wide spacing */
+.cols2 .right-col {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+.cols3 .right-col,.cols4 .right-col,.cols5 .right-col,.cols6 .right-col,.cols7 .right-col,.cols8 .right-col,.cols9 .right-col {
+  padding-left: 7px;
+  padding-right: 7px;
+}
+
+.split ul {
+    -webkit-column-count: 2;
+    -moz-column-count: 2;
+    column-count: 2;
+}
+.split .edit-col {
+    right:0px;
+}
+
+
+.coltrans {
+   border-color: transparent;
+}
+/* 
+   Any changes shoud be checked to make sure they have enough
+   contrast for accessiblity. These colors have been checked
+   against the WebAIM Color Contrast Checker. I've tried to
+   make them subjectively the same darkness.
+*/
+.colgray {
+   background-color: #f0f0f0;
+   border-color: #222;
+}
+.colred {
+   background-color: #fff0f0;
+   border-color: #600;
+   color: #600;
+}
+.colblue {
+   background-color: #f4f4ff;
+   border-color: #004;
+   color: #004;
+}
+.colgreen {
+   background-color: #f6fff6;
+   border-color: #030;
+   color: #030;
+}
+.colyellow {
+   background-color: #ffffe8;
+   border-color: #840;
+   color: #840;
+}
+
+
+
+.columnopen, .addbottom {
+  text-decoration: none;
+}
 .mainList li {
     position: relative;
 }
@@ -368,17 +480,10 @@ a.edit-link:link, a.edit-link:visited, a.section-merge-link:link, a.section-merg
 .edit-col .ui-button-text, #submit-grading .ui-button-text, .portalmenu .ui-button-text {
 	font-size: 60%;
 }
-
-.sectionedit {
-   top: -37px;
-   position:absolute;
-   font-size: 60%;
-   padding: 7px;
+.edit-col {
+  font-size: 20px;
+  line-height: 24px;
 }
-.sectionedit a span {
-   color: rgb(102,102,102);
-}
-
 .buttonItem {
 	padding-left: 20px
 }
@@ -664,6 +769,15 @@ a.peer-eval-stats {
 .duecol {
 	padding-left: 2em !important
 }
+
+/* negative bottom margin because we set a top margin for the section below for the case where there's no toolbar */
+#toolbar {
+  padding:2px;
+  margin:0px;
+  margin-bottom:-10px;
+  display:inline-block !important;
+}
+
 /* Dropdown Menu */
 ul#toolbar li {
 	display: inline;
@@ -770,7 +884,7 @@ img {
 	padding: 1px 5px;
 	display: inline-block;
 	font-size: 90%;
-	background-color: #acf;
+	border: solid 1px;
 	-moz-border-radius: 3px;
 	-webkit-border-radius: 3px;
 	border-radius: 3px;
@@ -828,11 +942,20 @@ img {
  font-size:85%;
 }
 input[type="submit"].question-submit,.addStudentContent {
+   margin: inherit;
    margin-top:15px;
-   border-color:#aaa;
+   border:1px solid #999;
+   color: black !important;
+   font-family: inherit;
+   cursor: pointer;
    padding:6px 20px !important;
-   background:none;
+   background:#f0f0f0;
    font-weight: normal;
+   font-size: inherit;
+   letter-spacing: inherit;   
+   line-height: inherit;
+   border-radius: 3px;
+   position: static;
 }
 
 .questionDiv .contentCol {
@@ -921,14 +1044,19 @@ div[role="dialog"] {
     width: 100%;
     height: 100%;
 }
-.portletTitle .action {
-    padding: 2px -1px 6px 2px;
-    float: right;
-    vertical-align: middle;
+.action {
+  display:inline-block;
+  float:right !important;
 }
-.Mrphs-toolTitleNav .action {
-    display: inline-block;
+.action {
+  margin-top:5px;
 }			      
+.Mrphs-toolTitleNav .Mrphs-toolTitleNav__button_container {
+  top:-10px !important;
+}
+.Mrphs-siteHierarchy {
+    height: auto !important;
+}
 .portletTitle .action a#jsr-edit {
     padding: 2px;
     background: url(../images/page_edit.gif) center right no-repeat;
@@ -967,20 +1095,6 @@ div[role="dialog"] {
 }
 .portletTitle .action a.tool-directurl:hover{
     background: url(/library/image/silk/link_go.png) center right no-repeat;
-}
-.portletTitle .action a.Mrphs-toolTitleNav__link--directurl{
-    background: none;
-    display:inline
-}
-.portletTitle .action a.Mrphs-toolTitleNav__link--directurl:hover{
-    background: none
-}
-a.Mrphs-toolTitleNav__link--help-popup {
-    display:inline
-}
-a.Mrphs-toolTitleNav__link--reset {
-    display:inline;
-    border:none !important
 }
 .direct-url-wrap {
     font-size: 85%;
@@ -1024,11 +1138,11 @@ a.Mrphs-toolTitleNav__link--reset {
     background: url(../images/reload_h.gif) center left no-repeat
 }
 
-/*
- alternate treatment for list - can go in tool.css
-*/
 .right-col {
  display: inline-block;
+}
+.multimediaType .right-col {
+ width:100%;  /* for embedded video */
 }
 .right-col2 {
  left:5px;
@@ -1036,24 +1150,8 @@ a.Mrphs-toolTitleNav__link--reset {
 .right-col3 {
  left:10px;
 }
-
-.Mrphs-toolTitleNav__title {
-  width: auto !important;
-}
-.Mrphs-container--toolTitleNav {
-  text-align:right;
-}
-.Mrphs-toolTitleNav__title {
-  float:left;
-  text-align:left;
-}
-.returnwarning, .returnheader, .Mrphs-toolTitleNav__addLeft .usebutton span {
+.returnwarning, .returnheader, .xMrphs-toolTitleNav__addLeft .usebutton span {
   font-size: .75em;
-}
-.Mrphs-toolTitleNav__addRight {
-  display:inline-block
-}
-#content, #outer, nav.Mrphs-toolTitleNav {
 }
 #content{
   padding-top: 1px;
@@ -1061,6 +1159,7 @@ a.Mrphs-toolTitleNav__link--reset {
 }
 div.navIntraTool {
   border-top:none;
+  margin-bottom:
 }
 
 /* temporary, to avoid changing old stuff for the moment */
@@ -1093,21 +1192,37 @@ padding:1px;
 color: #666;
 }
 
-.sectionedit {
+/* position relative with no args does nothing, but editsection's position absolute needs it as a refernce */
+.column {
+   position:relative;
+}
+.editsection {
    position:absolute;
-   top: -37px;
+   top:-12px;
+}
+.sectionedit {
+   display:inline-block;
    background-color:#eee;
    z-index: 900;
    -webkit-border-radius: 3px;
    -moz-border-radius: 3px;
    border-radius: 3px;
    border: solid #bbb 1px;
-   padding:3px 5px 0px 5px ;
-   font-size: 60%;
-   line-height: 200%;
+   padding: 0px 5px 0px 5px ;
+   font-size: 20px;
+   line-height: 24px;
 }
 .sectionedit a span {
    color: #666;
+}
+.addbottom {
+   position:absolute;
+   top: auto;
+   bottom:0px;
+   right:0px;
+}
+.addbottom a {
+   text-decoration: none;
 }
 
 .right-col a {
@@ -1143,7 +1258,7 @@ li.resourceType .right-col {
  border:none;
 }
 .itemclass {
- margin-top:2.0em !important;
+ margin-top:3.0em !important;
 }
 .add-comment-button span {
 font-size: 90%;
@@ -1155,30 +1270,71 @@ font-size: 90%;
  padding: 5px 10px;
 }
 
+/* in full width mode, if we don't do this, and the
+   first region is split, the right column doesn't fit
+   must be overridden for narrow format */
+.Mrphs-container--toolTitleNav {
+  margin-bottom:-30px !important;
+}
+
 /* 800 is when the left margin collapses */
 @media only screen and (max-width: 800px) {
-.contentButton {
-  display:none !important;
+.Mrphs-container--toolTitleNav {
+  margin-bottom: 0px !important;
+}
+.genTitle {
+  display:none;
+}
+/* student mode only */
+.genTitle ~ .action {
+  margin-top:-5px;
+}
+.itemclass {
+  margin-top: 0.5em !important;
+}
+.removeNarrow {
+ display:none !important;
 }
 .column {
   margin-left: 2px;
   margin-right: 2px;
 }
-div.section ul.cols2 {
-    width: calc(50% - 20px) !important;
-}
 .right-col {
   padding-left: 7px;
   padding-right: 7px;
 }
+.split ul {
+    -webkit-column-count: 1;
+    -moz-column-count: 1;
+    column-count: 1;
+}
 /* with narrow screen, don't use multiple columns */
-.cols1, .cols2, .cols3, .cols4, .cols5, .cols6, .cols7, .cols8, .cols9 {
+.cols1, .cols2, .cols3, .cols4, .cols5, .cols6, .cols7, .cols8, .cols9, 
+[class~="cols9"][class~="double"],
+[class~="cols8"][class~="double"],
+[class~="cols7"][class~="double"],
+[class~="cols6"][class~="double"],
+[class~="cols5"][class~="double"],
+[class~="cols4"][class~="double"],
+[class~="cols3"][class~="double"],
+[class~="cols2"][class~="double"],
+[class~="cols1"][class~="double"]
+ {
     width: calc(100% - 20px) !important;
 }
+/* override special spacing for multiple columsn in default page width */
+.cols2 .right-col,.cols3 .right-col,.cols4 .right-col,.cols5 .right-col,.cols6 .right-col,.cols7 .right-col,.cols8 .right-col,.cols9 .right-col {
+  padding-left: 7px;
+  padding-right: 7px;
 }
-
+}
 .lessonsToolButton {
   border-radius:15px !important;
+}
+.addcontent-icontext {
+  line-height:25px; 
+  vertical-align:-3px;
+  font-size:200%
 }
 .contentButton span {
   padding: 0px !important;
@@ -1189,6 +1345,8 @@ div.section ul.cols2 {
 .navIntraTool li.contentButton a {
   padding-top:2px !important;
   padding-bottom:2px !important;
+}
+.navIntraTool li.contentButton a .fa-button-text {
   font-family:FontAwesome;
 }
 .fa-item-text {
@@ -1198,15 +1356,183 @@ div.section ul.cols2 {
   font-family:FontAwesome;
 }
 .fa-edit-icon{
-  font-size:200%;
+  font-size:16px;
   font-weight: normal;
   color: #aaa;
   font-family:FontAwesome;
 }
 .fa-group-icon {
-  font-size:200%;
+  font-size:16px;
   font-family:FontAwesome;
 }
 .mainList li:hover.canEdit {
     background-color: #eee;
+}
+.peer-eval-row .newPeerCell {
+   background-color: rgb(173,216,230) !important;
+}
+.peer-eval-row .selectedPeerCell {
+/* nothing - used to save information */
+}
+
+.Mrphs-siteHierarchy span:last-child {
+  margin-left: 6px;
+}
+.contentButton span a {
+  height: 24px;
+}
+.contentButton {
+  height: 26px;
+  line-height: 21px;
+  margin-top: 3px !important;
+  z-index:900;
+}
+.Mrphs-siteHierarchy .action .lessonsToolButton {
+  background-color: transparent;
+  padding-top: 1px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+/* for ShowItem */
+.itemHeader {
+  margin-bottom:20px; 
+  border-bottom:solid black 1px
+}
+.itemTitle {
+  margin-top:10px
+}
+.startupHelp {
+  margin-top: 20px;
+}
+/* this section is to make things work when lessons is in an iframe */
+.contentButton span a {
+  display:inline-block !important;
+  border:1px solid #e0e0e0;
+}
+body > .portletBody {
+  margin-top:-15px;
+  padding-top:0px;
+  padding-bottom:0px;
+}
+.oldPortal + .navIntroTool {
+}
+.oldPortal .title {
+
+}
+.oldPortal + .navIntraTool {
+  padding-top:0px;
+}
+.title-tools {
+  line-height:30px;
+}
+.oldPortal + .navIntraTool {
+  border: none;
+}
+.oldPortal + .navIntraTool #toolbar{
+ margin-top:5px;
+ margin-bottom:0px;
+}
+/* old portal, but only for students. instructors need more spacing */
+.oldPortal ~ .itemclass {
+  margin-top: 0.0em !important;
+}
+/* put back default value if an instructor */
+.navIntraTool ~ div.itemclass {
+  margin-top: 3.0em !important;
+}
+.title-tools {
+  float:none;
+  position:static;
+  margin-bottom:0px !important;
+}
+.oldPortal .title {
+  display: inline-block;
+  float:none !important;
+  text-align: left;
+}
+.oldPortal .action {
+     margin-top:0px;
+ }
+@media only screen and (min-width: 855px) {
+/* student mode only */
+body > .portletBody > .action {
+  margin-right:150px;
+}
+.oldPortal .action {
+     margin-top:20px;
+   }
+}
+.oldPortal + .navIntraTool {
+   margin-top: -10px;
+}
+/* end lessons in iframe */
+/* narrow screen */
+
+/* print */
+@media print {
+
+.oldPortal .portletTitle {
+  padding-top: 30px !important
+}
+
+.cols9 {
+    width: calc(100$ / 9  - 32px) !important;
+}
+[class~="cols9"][class~="double"] {
+    width: calc(200% / 9 - 32px) !important;
+}
+.cols8 {
+    width: calc(100% / 8 - 32px) !important;
+}
+[class~="cols8"][class~="double"] {
+    width: calc(200% / 8 - 32px) !important;
+}
+.cols7 {
+    width: calc(100% / 7 - 32px) !important;
+}
+[class~="cols7"][class~="double"] {
+    width: calc(200% / 7 - 32px) !important;
+}
+.cols6 {
+    width: calc(100% / 6 - 32px) !important;
+}
+[class~="cols6"][class~="double"] {
+    width: calc(200% / 6 - 32px) !important;
+}
+.cols5 {
+    width: calc(100% / 5 - 32px) !important;
+}
+[class~="cols5"][class~="double"] {
+    width: calc(200% / 5 - 32px) !important;
+}
+.cols4 {
+    width: calc(100% / 4 - 32px) !important;
+}
+[class~="cols4"][class~="double"] {
+    width: calc(200% / 4 - 32px) !important;
+}
+.cols3 {
+    width: calc(100% / 3 - 32px) !important;
+}
+[class~="cols3"][class~="double"] {
+    width: calc(200% / 3 - 32px) !important;
+}
+.cols2 {
+    width: calc(100% / 2 - 32px) !important;
+}
+[class~="cols2"][class~="double"] {
+    width: calc(200% / 2 - 32px) !important;
+}
+.cols1 {
+    width: calc(100% - 32px) !important;
+}
+}
+/* end media print */
+
+/* high z-index for items in morpheus. We use large z-index to make sure we go on top
+   of any video players or other embedded content. That requires larger values for some
+   elements of Morpheus. */
+
+#Mrphs-footerApp__chat, .Mrphs-userNav__subnav {
+        z-index: 100002 !important;
 }

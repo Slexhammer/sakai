@@ -5,7 +5,7 @@
 	<parent>
 		<artifactId>sakai-rsf</artifactId>
 		<groupId>org.sakaiproject.rsf</groupId>
-		<version>11-SNAPSHOT</version>
+		<version>12-SNAPSHOT</version>
 	</parent>
 	<packaging>jar</packaging>
 	<artifactId>sakai-rsf-core</artifactId>
@@ -13,6 +13,21 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
+		<dependency>
+			<groupId>org.ogce</groupId>
+			<artifactId>xpp3</artifactId>
+			<version>1.1.6</version>
+		</dependency>
+		<dependency>
+			<groupId>uk.org.ponder.rsf</groupId>
+			<artifactId>rsf-core-ponderutilcore</artifactId>
+			<version>${rsf.version}</version>
+		</dependency>	  
+		<dependency>
+			<groupId>uk.org.ponder.rsf</groupId>
+			<artifactId>rsf-core-servletutil</artifactId>
+			<version>${rsf.version}</version>
+		</dependency>	  
 		<dependency>
 			<groupId>uk.org.ponder.rsf</groupId>
 			<artifactId>rsf-core</artifactId>
@@ -70,9 +85,8 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.sakaiproject</groupId>
+			<groupId>org.sakaiproject.genericdao</groupId>
 			<artifactId>generic-dao</artifactId>
-			<version>${generic-dao.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -90,6 +104,10 @@
 		<dependency>
 			<groupId>org.sakaiproject.entitybroker</groupId>
 			<artifactId>entitybroker-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sakaiproject.portal</groupId>
+			<artifactId>sakai-portal-util</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>

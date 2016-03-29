@@ -53,9 +53,9 @@ public class ExtendedTimeService {
 		this.hasExtendedTime = (metaString != null);
 		if (this.hasExtendedTime) {
 			this.timeLimit = extractExtendedTime();
-			this.startDate = determineDate(1, publishedAssessment.getStartDate(), publishedAssessment);
-			this.dueDate = determineDate(2, publishedAssessment.getDueDate(), publishedAssessment);
-			this.retractDate = determineDate(3, publishedAssessment.getRetractDate(), publishedAssessment);
+			this.startDate = determineDate(1, publishedAssessment.getStartDate());
+			this.dueDate = determineDate(2, publishedAssessment.getDueDate());
+			this.retractDate = determineDate(3, this.dueDate);
 		} else {
 			this.timeLimit = 0;
 			this.startDate = publishedAssessment.getStartDate();
@@ -128,7 +128,7 @@ public class ExtendedTimeService {
 	 * @param defaultDate
 	 * @return
 	 */
-	private Date determineDate(int dateType, Date defaultDate, PublishedAssessmentFacade publishedAssessment) {
+	private Date determineDate(int dateType, Date defaultDate) {
 		Date xtDate = defaultDate;
 
 		String[] extendedTimeItems = metaString.split("[|]");
@@ -146,7 +146,8 @@ public class ExtendedTimeService {
 
 	private Date parseDate(String dateString, Date xtDate) {
 		try {
-			xtDate = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss aa", Locale.ENGLISH).parse(dateString);
+			//xtDate = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss aa", Locale.ENGLISH).parse(dateString);
+			xtDate = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss", Locale.ENGLISH).parse(dateString);
 			this.hasExtendedTime = true;
 		} catch (ParseException e) {
 			e.printStackTrace();
